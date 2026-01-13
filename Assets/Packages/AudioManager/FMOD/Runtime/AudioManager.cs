@@ -46,10 +46,8 @@ namespace ThanhDV.AudioManager.FMOD
                 _instance = this as AudioManager;
                 DontDestroyOnLoad(_instance);
 
-                InitializeAudioBusses();
-#if UNITY_EDITOR
-                InitializeDebug();
-#endif
+                InitializeAudioBuses();
+
                 return;
             }
 
@@ -57,46 +55,17 @@ namespace ThanhDV.AudioManager.FMOD
         }
         #endregion
 
-        private EventInstance bgmInstance;
-        private CancellationTokenSource bgmOperationCTS;
-        private readonly Dictionary<string, EventInstance> loopingInstances = new();
+        private EventInstance _bgmInstance;
+        private CancellationTokenSource _bgmOperationCTS;
+        private readonly Dictionary<string, EventInstance> _createdInstances = new();
 
-        private Dictionary<AudioType, Bus> audioBusses;
-
-#if UNITY_EDITOR
-
-        [Header("Volume")]
-        [SerializeField, Range(0f, 1f)] private float masterVolume;
-        [SerializeField, Range(0f, 1f)] private float bgmVolume;
-        [SerializeField, Range(0f, 1f)] private float sfxVolume;
-
-        private void InitializeDebug()
-        {
-            masterVolume = GetVolume(AudioType.MASTER);
-            bgmVolume = GetVolume(AudioType.BGM);
-            sfxVolume = GetVolume(AudioType.SFX);
-        }
-
-        private void OnValidate()
-        {
-            SetVolume(AudioType.MASTER, masterVolume);
-            SetVolume(AudioType.BGM, bgmVolume);
-            SetVolume(AudioType.SFX, sfxVolume);
-        }
-
-        private void Update()
-        {
-            masterVolume = GetVolume(AudioType.MASTER);
-            bgmVolume = GetVolume(AudioType.BGM);
-            sfxVolume = GetVolume(AudioType.SFX);
-        }
-#endif
+        private Dictionary<AudioType, Bus> _audioBuses;
 
         #region Audio volume
 
-        private void InitializeAudioBusses()
+        private void InitializeAudioBuses()
         {
-            audioBusses = new();
+            _audioBuses = new();
 
             InitializeAudioBus(AudioType.MASTER, "bus:/");
             InitializeAudioBus(AudioType.BGM, "bus:/BGM");
@@ -108,19 +77,19 @@ namespace ThanhDV.AudioManager.FMOD
             try
             {
                 Bus masterBus = RuntimeManager.GetBus(busPath);
-                audioBusses.TryAdd(type, masterBus);
+                _audioBuses.TryAdd(type, masterBus);
             }
             catch (BusNotFoundException)
             {
-                Debug.Log($"<color=red>[FMODIntegration] Bus not found: '{busPath}'. Please check your FMOD Studio project!!!</color>");
+                Debug.Log($"<color=red>[AudioManager - FMOD] Bus not found: '{busPath}'. Please check your FMOD Studio project!!!</color>");
             }
         }
 
         public void SetVolume(AudioType type, float volume)
         {
-            if (!audioBusses.TryGetValue(type, out Bus bus))
+            if (!_audioBuses.TryGetValue(type, out Bus bus))
             {
-                Debug.Log($"<color=red>[FMODIntegration] Bus not found: '{type.ToString()}'. Please check your FMOD Studio project or Initialize first!!!</color>");
+                Debug.Log($"<color=red>[AudioManager - FMOD] Bus not found: '{type.ToString()}'. Please check your FMOD Studio project or Initialize first!!!</color>");
                 return;
             }
 
@@ -130,9 +99,9 @@ namespace ThanhDV.AudioManager.FMOD
 
         public float GetVolume(AudioType type)
         {
-            if (!audioBusses.TryGetValue(type, out Bus bus))
+            if (!_audioBuses.TryGetValue(type, out Bus bus))
             {
-                Debug.Log($"<color=red>[FMODIntegration] Bus not found: '{type.ToString()}'. Please check your FMOD Studio project or Initialize first!!!</color>");
+                Debug.Log($"<color=red>[AudioManager - FMOD] Bus not found: '{type.ToString()}'. Please check your FMOD Studio project or Initialize first!!!</color>");
                 return -1f;
             }
 
@@ -191,10 +160,10 @@ namespace ThanhDV.AudioManager.FMOD
         /// <param name="delay">The time to wait after the old track starts fading out before the new track starts fading in. 0 = Crossfade, fadeDuration = Sequential Fade.</param>
         public void PlayBGM(EventReference bgmReference, float fadeDuration = 1.0f, float delay = 0f)
         {
-            bgmOperationCTS?.Cancel();
-            bgmOperationCTS = new CancellationTokenSource();
+            _bgmOperationCTS?.Cancel();
+            _bgmOperationCTS = new CancellationTokenSource();
 
-            _ = PerformBgmTransitionAsync(bgmReference, fadeDuration, delay, bgmOperationCTS.Token);
+            _ = PerformBgmTransitionAsync(bgmReference, fadeDuration, delay, _bgmOperationCTS.Token);
         }
 
         /// <summary>
@@ -205,10 +174,10 @@ namespace ThanhDV.AudioManager.FMOD
         /// <param name="delay">The time to wait after the old track starts fading out before the new track starts fading in. 0 = Crossfade, fadeDuration = Sequential Fade.</param>
         public void PlayBGM(string bgmPath, float fadeDuration = 1.0f, float delay = 0f)
         {
-            bgmOperationCTS?.Cancel();
-            bgmOperationCTS = new CancellationTokenSource();
+            _bgmOperationCTS?.Cancel();
+            _bgmOperationCTS = new CancellationTokenSource();
 
-            _ = PerformBgmTransitionAsync(bgmPath, fadeDuration, delay, bgmOperationCTS.Token);
+            _ = PerformBgmTransitionAsync(bgmPath, fadeDuration, delay, _bgmOperationCTS.Token);
         }
 
         /// <summary>
@@ -218,8 +187,8 @@ namespace ThanhDV.AudioManager.FMOD
         /// <param name="delay">The time to wait to start fading out.</param>
         public void StopBGM(float fadeDuration = 1.0f, float delay = 0)
         {
-            bgmOperationCTS?.Cancel();
-            bgmOperationCTS = new CancellationTokenSource();
+            _bgmOperationCTS?.Cancel();
+            _bgmOperationCTS = new CancellationTokenSource();
 
             PlayBGM(null, fadeDuration, delay);
         }
@@ -234,7 +203,7 @@ namespace ThanhDV.AudioManager.FMOD
         /// <returns>A Task representing the asynchronous transition operation.</returns>
         private async Task PerformBgmTransitionAsync(string newBgmPath, float duration, float delay, CancellationToken token)
         {
-            EventInstance oldInstance = bgmInstance;
+            EventInstance oldInstance = _bgmInstance;
             if (oldInstance.isValid())
             {
                 _ = FadeOutAndRelease(oldInstance, duration, token);
@@ -242,7 +211,7 @@ namespace ThanhDV.AudioManager.FMOD
 
             if (string.IsNullOrEmpty(newBgmPath))
             {
-                bgmInstance = new EventInstance();
+                _bgmInstance = new EventInstance();
                 return;
             }
 
@@ -257,17 +226,17 @@ namespace ThanhDV.AudioManager.FMOD
 
                 EventInstance newInstance = RuntimeManager.CreateInstance(newBgmPath);
                 newInstance.start();
-                bgmInstance = newInstance;
+                _bgmInstance = newInstance;
 
                 await FadeInstance(newInstance, 0f, 1.0f, duration, token);
             }
             catch (TaskCanceledException)
             {
-                Debug.Log("<color=red>[FMODIntegration] BGM fade-in was cancelled!!!</color>");
-                if (bgmInstance.isValid())
+                Debug.Log("<color=red>[AudioManager - FMOD] BGM fade-in was cancelled!!!</color>");
+                if (_bgmInstance.isValid())
                 {
-                    bgmInstance.stop(global::FMOD.Studio.STOP_MODE.IMMEDIATE);
-                    bgmInstance.release();
+                    _bgmInstance.stop(global::FMOD.Studio.STOP_MODE.IMMEDIATE);
+                    _bgmInstance.release();
                 }
             }
         }
@@ -282,7 +251,7 @@ namespace ThanhDV.AudioManager.FMOD
         /// <returns>A Task representing the asynchronous transition operation.</returns>
         private async Task PerformBgmTransitionAsync(EventReference newBgmRef, float duration, float delay, CancellationToken token)
         {
-            EventInstance oldInstance = bgmInstance;
+            EventInstance oldInstance = _bgmInstance;
             if (oldInstance.isValid())
             {
                 _ = FadeOutAndRelease(oldInstance, duration, token);
@@ -290,7 +259,7 @@ namespace ThanhDV.AudioManager.FMOD
 
             if (newBgmRef.IsNull)
             {
-                bgmInstance = new EventInstance();
+                _bgmInstance = new EventInstance();
                 return;
             }
 
@@ -305,17 +274,17 @@ namespace ThanhDV.AudioManager.FMOD
 
                 EventInstance newInstance = RuntimeManager.CreateInstance(newBgmRef);
                 newInstance.start();
-                bgmInstance = newInstance;
+                _bgmInstance = newInstance;
 
                 await FadeInstance(newInstance, 0f, 1.0f, duration, token);
             }
             catch (TaskCanceledException)
             {
-                Debug.Log("<color=red>[FMODIntegration] BGM fade-in was cancelled!!!</color>");
-                if (bgmInstance.isValid())
+                Debug.Log("<color=red>[AudioManager - FMOD] BGM fade-in was cancelled!!!</color>");
+                if (_bgmInstance.isValid())
                 {
-                    bgmInstance.stop(global::FMOD.Studio.STOP_MODE.IMMEDIATE);
-                    bgmInstance.release();
+                    _bgmInstance.stop(global::FMOD.Studio.STOP_MODE.IMMEDIATE);
+                    _bgmInstance.release();
                 }
             }
         }
@@ -355,7 +324,7 @@ namespace ThanhDV.AudioManager.FMOD
             }
             catch (TaskCanceledException)
             {
-                Debug.Log("<color=red>[FMODIntegration] FadeOutAndRelease task was cancelled!!!</color>");
+                Debug.Log("<color=red>[AudioManager - FMOD] FadeOutAndRelease task was cancelled!!!</color>");
             }
             finally
             {
@@ -373,18 +342,19 @@ namespace ThanhDV.AudioManager.FMOD
         /// <param name="id">A unique string to identify this sound instance (e.g., "playerFootsteps", "faucet_1").</param>
         /// <param name="loopPath">The Path of FMOD Event Reference for the looping sound.</param>
         /// <param name="attachedObject">Optional: The GameObject to attach the sound to for 3D positioning.</param>
-        public void PlayLoop(string id, string loopPath, GameObject attachedObject = null)
+        /// <param name="attachedRigidbody">Optional: The Rigidbody to attach the sound to for Doppler effect.</param>
+        public void PlayLoop(string id, string loopPath, GameObject attachedObject = null, Rigidbody attachedRigidbody = null)
         {
-            if (loopingInstances.ContainsKey(id)) return;
+            if (_createdInstances.ContainsKey(id)) return;
 
             EventInstance loopInstance = RuntimeManager.CreateInstance(loopPath);
             if (attachedObject != null)
             {
-                RuntimeManager.AttachInstanceToGameObject(loopInstance, attachedObject.transform, attachedObject.GetComponent<Rigidbody>());
+                RuntimeManager.AttachInstanceToGameObject(loopInstance, attachedObject, attachedRigidbody);
             }
 
             loopInstance.start();
-            loopingInstances.Add(id, loopInstance);
+            _createdInstances.Add(id, loopInstance);
         }
 
         /// <summary>
@@ -393,18 +363,19 @@ namespace ThanhDV.AudioManager.FMOD
         /// <param name="id">A unique string to identify this sound instance (e.g., "playerFootsteps", "faucet_1").</param>
         /// <param name="loopReference">The FMOD Event Reference for the looping sound.</param>
         /// <param name="attachedObject">Optional: The GameObject to attach the sound to for 3D positioning.</param>
-        public void PlayLoop(string id, EventReference loopReference, GameObject attachedObject = null)
+        /// <param name="attachedRigidbody">Optional: The Rigidbody to attach the sound to for Doppler effect.</param>
+        public void PlayLoop(string id, EventReference loopReference, GameObject attachedObject = null, Rigidbody attachedRigidbody = null)
         {
-            if (loopingInstances.ContainsKey(id)) return;
+            if (_createdInstances.ContainsKey(id)) return;
 
             EventInstance loopInstance = RuntimeManager.CreateInstance(loopReference);
             if (attachedObject != null)
             {
-                RuntimeManager.AttachInstanceToGameObject(loopInstance, attachedObject.transform, attachedObject.GetComponent<Rigidbody>());
+                RuntimeManager.AttachInstanceToGameObject(loopInstance, attachedObject, attachedRigidbody);
             }
 
             loopInstance.start();
-            loopingInstances.Add(id, loopInstance);
+            _createdInstances.Add(id, loopInstance);
         }
 
         /// <summary>
@@ -413,9 +384,13 @@ namespace ThanhDV.AudioManager.FMOD
         /// <param name="id">The unique ID of the sound to pause.</param>
         public void PauseLoop(string id)
         {
-            if (loopingInstances.TryGetValue(id, out EventInstance instance))
+            if (_createdInstances.TryGetValue(id, out EventInstance instance))
             {
                 instance.setPaused(true);
+            }
+            else
+            {
+                Debug.Log($"<color=red>[AudioManager - FMOD] Could not find looping sound with ID '{id}' to pause!!!</color>");
             }
         }
 
@@ -425,9 +400,13 @@ namespace ThanhDV.AudioManager.FMOD
         /// <param name="id">The unique ID of the sound to resume.</param>
         public void ResumeLoop(string id)
         {
-            if (loopingInstances.TryGetValue(id, out EventInstance instance))
+            if (_createdInstances.TryGetValue(id, out EventInstance instance))
             {
                 instance.setPaused(false);
+            }
+            else
+            {
+                Debug.Log($"<color=red>[AudioManager - FMOD] Could not find looping sound with ID '{id}' to resume!!!</color>");
             }
         }
 
@@ -439,40 +418,60 @@ namespace ThanhDV.AudioManager.FMOD
         /// <param name = "stopMode" > How to stop the sound(e.g., allow fade out or immediate).</param>
         public void StopLoop(string id, global::FMOD.Studio.STOP_MODE stopMode = global::FMOD.Studio.STOP_MODE.ALLOWFADEOUT)
         {
-            if (loopingInstances.TryGetValue(id, out EventInstance instance))
+            if (_createdInstances.TryGetValue(id, out EventInstance instance))
             {
+                RuntimeManager.DetachInstanceFromGameObject(instance);
                 instance.stop(stopMode);
                 instance.release();
-                loopingInstances.Remove(id);
+                _createdInstances.Remove(id);
             }
             else
             {
-                Debug.Log($"<color=red>[FMODIntegration] Could not find looping sound with ID '{id}' to stop!!!</color>");
+                Debug.Log($"<color=red>[AudioManager - FMOD] Could not find looping sound with ID '{id}' to stop!!!</color>");
             }
         }
 
+        #endregion
+
+        #region Others
+        /// <summary>
+        /// Get EventInstance for setParameter
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public bool TryGetEventInstance(string id, out EventInstance instance)
+        {
+            if (!_createdInstances.TryGetValue(id, out instance))
+            {
+                Debug.Log($"<color=red>[AudioManager - FMOD] Could not find looping sound with ID '{id}'!!!</color>");
+                return false;
+            }
+
+            return true;
+        }
         #endregion
 
         #region Cleanup
         private void OnDestroy()
         {
             // Cancel any ongoing BGM operations
-            bgmOperationCTS?.Cancel();
+            _bgmOperationCTS?.Cancel();
 
             // Clean up the main BGM instance
-            if (bgmInstance.isValid())
+            if (_bgmInstance.isValid())
             {
-                bgmInstance.stop(global::FMOD.Studio.STOP_MODE.IMMEDIATE);
-                bgmInstance.release();
+                _bgmInstance.stop(global::FMOD.Studio.STOP_MODE.IMMEDIATE);
+                _bgmInstance.release();
             }
 
             // Clean up all looping sounds
-            foreach (var ins in loopingInstances)
+            foreach (var ins in _createdInstances)
             {
+                RuntimeManager.DetachInstanceFromGameObject(ins.Value);
                 ins.Value.stop(global::FMOD.Studio.STOP_MODE.IMMEDIATE);
                 ins.Value.release();
             }
-            loopingInstances.Clear();
+            _createdInstances.Clear();
         }
         #endregion
     }

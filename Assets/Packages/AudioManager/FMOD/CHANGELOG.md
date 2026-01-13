@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.0.2] - 2025-12-26
+### Updated
+- Update method `PlayLoop()` to easy optimize.
+### Added
+- `DetachInstanceFromGameObject()` when release `EventInstance`
+- Add method `TryGetEventInstance()` to get created `EventInstance`
+
 ## [1.0.1] - 2025-09-22
 ### Fixed
 - Volume debug view

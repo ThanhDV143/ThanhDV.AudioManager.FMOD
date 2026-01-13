@@ -25,10 +25,12 @@ void PlayBGM(EventReference reference, float fadeDuration = 1f, float delay = 0f
 void PlayBGM(string path, float fadeDuration = 1f, float delay = 0f);
 void StopBGM(float fadeDuration = 1f, float delay = 0f);
 
-void PlayLoop(string id, string path, GameObject attachedObject = null);
-void PlayLoop(string id, EventReference reference, GameObject attachedObject = null);
+void PlayLoop(string id, string path, GameObject attachedObject = null, Rigidbody attachedRigidbody = null);
+void PlayLoop(string id, EventReference reference, GameObject attachedObject = null, Rigidbody attachedRigidbody = null);
 void PauseLoop(string id);
 void ResumeLoop(string id);
 void StopLoop(string id, STOP_MODE stopMode = STOP_MODE.ALLOWFADEOUT);
+
+bool TryGetEventInstance(string id, out EventInstance instance)
 ```
 

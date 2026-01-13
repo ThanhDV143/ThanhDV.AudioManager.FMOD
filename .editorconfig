@@ -1,0 +1,122 @@
+# Top-most EditorConfig file
+root = true
+
+# ==============================================================================
+# Cấu hình chung cho mọi định dạng file
+# ==============================================================================
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# JSON, XML, YAML formatting (Thường dùng trong Unity)
+[*.{json,xml,yml,yaml}]
+indent_size = 2
+
+# ==============================================================================
+# C# Coding Conventions
+# ==============================================================================
+[*.cs]
+indent_size = 4
+# Sắp xếp using: System.* lên đầu
+dotnet_sort_system_directives_first = true
+# Tách các nhóm using bằng dòng trống
+dotnet_separate_import_directive_groups = false
+
+# ------------------------------------------------------------------------------
+# 1. QUY TẮC ĐẶT TÊN (NAMING CONVENTIONS)
+# ------------------------------------------------------------------------------
+
+# --- Style Definitions ---
+# PascalCase (Dùng cho Class, Method, Property, Enum, Const)
+dotnet_naming_style.pascal_case_style.capitalization = pascal_case
+
+# camelCase (Dùng cho tham số, biến cục bộ)
+dotnet_naming_style.camel_case_style.capitalization = camel_case
+
+# I_PascalCase (Dùng cho Interface)
+dotnet_naming_style.i_pascal_case_style.capitalization = pascal_case
+dotnet_naming_style.i_pascal_case_style.required_prefix = I
+
+# _camelCase (Dùng cho Private Fields - Chuẩn Clean Code Unity/Microsoft hiện đại)
+dotnet_naming_style.underscore_camel_style.capitalization = camel_case
+dotnet_naming_style.underscore_camel_style.required_prefix = _
+
+# --- Symbol Definitions ---
+
+# Interface
+dotnet_naming_symbols.interface_types.applicable_kinds = interface
+dotnet_naming_symbols.interface_types.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
+
+# Private Fields (Biến thành viên private)
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+
+# Constant Fields (Hằng số - Bắt buộc PascalCase theo chuẩn MS, thay vì SCREAMING_CAPS)
+dotnet_naming_symbols.constant_fields.applicable_kinds = field
+dotnet_naming_symbols.constant_fields.required_modifiers = const
+
+# Public/Internal Fields, Properties, Methods, Events...
+dotnet_naming_symbols.public_members.applicable_kinds = property, method, field, event, delegate
+dotnet_naming_symbols.public_members.applicable_accessibilities = public, internal, protected, protected_internal
+
+# --- Rules ---
+
+# Rule: Interface phải bắt đầu bằng 'I'
+dotnet_naming_rule.interface_should_be_i_pascal_case.symbols = interface_types
+dotnet_naming_rule.interface_should_be_i_pascal_case.style = i_pascal_case_style
+dotnet_naming_rule.interface_should_be_i_pascal_case.severity = suggestion
+
+# Rule: Private Fields phải là _camelCase (Quan trọng cho Unity để tránh nhầm với Local var)
+dotnet_naming_rule.private_fields_should_be_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_should_be_underscore.style = underscore_camel_style
+dotnet_naming_rule.private_fields_should_be_underscore.severity = warning
+
+# Rule: Constants phải là PascalCase (Không dùng SCREAMING_CAPS)
+dotnet_naming_rule.constants_should_be_pascal_case.symbols = constant_fields
+dotnet_naming_rule.constants_should_be_pascal_case.style = pascal_case_style
+dotnet_naming_rule.constants_should_be_pascal_case.severity = suggestion
+
+# Rule: Các thành phần Public khác phải là PascalCase
+dotnet_naming_rule.public_members_should_be_pascal_case.symbols = public_members
+dotnet_naming_rule.public_members_should_be_pascal_case.style = pascal_case_style
+dotnet_naming_rule.public_members_should_be_pascal_case.severity = suggestion
+
+# ------------------------------------------------------------------------------
+# 2. FORMATTING RULES (C# Layout)
+# ------------------------------------------------------------------------------
+
+# Ngoặc nhọn (Braces) luôn xuống dòng (Allman Style - Chuẩn C#)
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+
+# Space (Khoảng trắng)
+csharp_space_after_keywords_in_control_flow_statements = true
+csharp_space_before_colon_in_inheritance_clause = true
+csharp_space_after_colon_in_inheritance_clause = true
+csharp_space_around_binary_operators = before_and_after
+
+# ------------------------------------------------------------------------------
+# 3. CODE STYLE RULES
+# ------------------------------------------------------------------------------
+
+# Dùng 'var' khi kiểu dữ liệu đã rõ ràng bên phải (ví dụ: var obj = new Object();)
+csharp_style_var_when_type_is_apparent = true:suggestion
+
+# Nhưng ưu tiên hiển thị kiểu rõ ràng ở các nơi khác để dễ đọc
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_elsewhere = false:suggestion
+
+# Không dùng 'this.' trừ khi bắt buộc (giúp code gọn hơn vì đã có _ prefix cho private field)
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+dotnet_style_qualification_for_event = false:suggestion
+
+# Modifier order (public static readonly...)
+csharp_preferred_modifier_order = public,private,protected,internal,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,volatile,async:suggestion

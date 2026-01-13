@@ -264,20 +264,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4afb0a179eb92334c946d9572a32a2c4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  bgmEventReference:
+  _bgmEventReference:
+    Guid:
+      Data1: 1125158724
+      Data2: 1215768668
+      Data3: -380992089
+      Data4: 1039913086
+    Path: event:/Character/Door Close
+  _footEventReference:
+    Guid:
+      Data1: -1003740608
+      Data2: 1122878646
+      Data3: 1192915876
+      Data4: -364537359
+    Path: event:/Interactables/Barrel Roll
+  _loopReference:
     Guid:
       Data1: 1958460028
       Data2: 1217165032
       Data3: -261621348
       Data4: -48242944
     Path: event:/Music/Level 01
-  footEventReference:
-    Guid:
-      Data1: -373839110
-      Data2: 1100164592
-      Data3: 1319579315
-      Data4: -1597025449
-    Path: event:/Weapons/Machine Gun
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

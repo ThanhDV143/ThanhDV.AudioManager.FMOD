@@ -241,7 +241,7 @@ namespace FMODUnityResonance
         // Initializes and returns the FMOD Resonance Audio Listener Plugin.
         private static FMOD.DSP Initialize()
         {
-            // Search through all busses on in banks.
+            // Search through all buses on in banks.
             int numBanks = 0;
             FMOD.DSP dsp = new FMOD.DSP();
             FMOD.Studio.Bank[] banks = null;
@@ -249,20 +249,20 @@ namespace FMODUnityResonance
             RuntimeManager.StudioSystem.getBankList(out banks);
             for (int currentBank = 0; currentBank < numBanks; ++currentBank)
             {
-                int numBusses = 0;
-                FMOD.Studio.Bus[] busses = null;
-                banks[currentBank].getBusCount(out numBusses);
-                banks[currentBank].getBusList(out busses);
-                for (int currentBus = 0; currentBus < numBusses; ++currentBus)
+                int numBuses = 0;
+                FMOD.Studio.Bus[] buses = null;
+                banks[currentBank].getBusCount(out numBuses);
+                banks[currentBank].getBusList(out buses);
+                for (int currentBus = 0; currentBus < numBuses; ++currentBus)
                 {
                     // Make sure the channel group of the current bus is assigned properly.
                     string busPath = null;
-                    busses[currentBus].getPath(out busPath);
-                    RuntimeManager.StudioSystem.getBus(busPath, out busses[currentBus]);
-                    busses[currentBus].lockChannelGroup();
+                    buses[currentBus].getPath(out busPath);
+                    RuntimeManager.StudioSystem.getBus(busPath, out buses[currentBus]);
+                    buses[currentBus].lockChannelGroup();
                     RuntimeManager.StudioSystem.flushCommands();
                     FMOD.ChannelGroup channelGroup;
-                    busses[currentBus].getChannelGroup(out channelGroup);
+                    buses[currentBus].getChannelGroup(out channelGroup);
                     if (channelGroup.hasHandle())
                     {
                         int numDsps = 0;
@@ -280,7 +280,7 @@ namespace FMODUnityResonance
                             }
                         }
                     }
-                    busses[currentBus].unlockChannelGroup();
+                    buses[currentBus].unlockChannelGroup();
                 }
             }
             RuntimeUtils.DebugLogError(listenerPluginName + " not found in the FMOD project.");
