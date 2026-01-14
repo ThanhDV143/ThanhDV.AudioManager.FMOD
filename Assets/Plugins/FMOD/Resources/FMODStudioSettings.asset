@@ -390,8 +390,8 @@ MonoBehaviour:
   switchSettingsMigration: 1
   HasSourceProject: 1
   HasPlatforms: 1
-  sourceProjectPath: C:/Users/thanh/OneDrive/Documents/FMOD Studio/examples/Examples.fspro
-  sourceBankPath: C:/Users/thanh/OneDrive/Documents/FMOD Studio/examples/Build
+  sourceProjectPath: C:/Users/ThanhDV/Documents/FMOD Studio/examples/Examples.fspro
+  sourceBankPath: C:/Users/ThanhDV/Documents/FMOD Studio/examples/Build
   sourceBankPathUnformatted: 
   BankRefreshCooldown: 5
   ShowBankRefreshWindow: 1

@@ -1,8 +1,8 @@
 {
     "name": "thanhdv.audiomanager.fmod",
-    "version": "1.0.2",
-    "displayName": "ThanhDV's Audio Manager",
-    "description": "Lightweight central audio controller for Unity + FMOD. Handles one‑shots, music transitions, and managed looping sounds with safe async fade logic.",
+    "version": "2.0.0",
+    "displayName": "ThanhDV's AudioManager",
+    "description": "Lightweight central audio controller for Unity + FMOD. Handles one-shots, music transitions, and managed looping sounds with safe async fade logic.",
     "unity": "2022.3",
     "keywords": [
         "AudioManager",
@@ -19,8 +19,8 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/ThanhDang143/ThanhDV.FMODIntegration.git"
+        "url": "git+https://github.com/ThanhDang143/ThanhDV.AudioManager.FMOD.git"
     },
-    "changelogUrl": "https://github.com/ThanhDang143/ThanhDV.FMODIntegration/blob/main/Assets/Packages/FMODIntegration/CHANGELOG.md",
+    "changelogUrl": "https://github.com/ThanhDang143/ThanhDV.AudioManager.FMOD/blob/main/Assets/Packages/FMODIntegration/CHANGELOG.md",
     "license": "MIT"
 }

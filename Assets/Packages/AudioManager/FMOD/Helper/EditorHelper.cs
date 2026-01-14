@@ -36,6 +36,47 @@ namespace ThanhDV.AudioManager.FMOD
             r.width += 6;
             EditorGUI.DrawRect(r, color ?? new Color(0.5f, 0.5f, 0.5f, 1));
         }
+
+        public static void DrawListWithoutHeader(SerializedProperty listProp, string countLabel)
+        {
+            if (listProp == null)
+                return;
+
+            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            {
+                int currentSize = listProp.arraySize;
+                int newSize = currentSize;
+
+                float rowHeight = EditorGUIUtility.singleLineHeight;
+                Rect row = EditorGUILayout.GetControlRect(false, rowHeight);
+
+                const float labelWidth = 150f;
+                const float buttonWidth = 20f;
+                const float spacing = 4f;
+
+                Rect labelRect = new Rect(row.x, row.y + 1f, labelWidth, rowHeight);
+                Rect minusRect = new Rect(row.xMax - buttonWidth, row.y + 2f, buttonWidth, rowHeight);
+                Rect plusRect = new Rect(minusRect.x - spacing - buttonWidth, row.y + 2f, buttonWidth, rowHeight);
+                Rect fieldRect = new Rect(labelRect.xMax + spacing, row.y + 2.75f, plusRect.x - spacing - (labelRect.xMax + spacing), rowHeight);
+
+                EditorGUI.LabelField(labelRect, countLabel);
+                newSize = EditorGUI.DelayedIntField(fieldRect, currentSize);
+                if (GUI.Button(plusRect, "+")) newSize = currentSize + 1;
+                if (GUI.Button(minusRect, "-")) newSize = Mathf.Max(0, currentSize - 1);
+
+                newSize = Mathf.Max(0, newSize);
+                if (newSize != currentSize)
+                    listProp.arraySize = newSize;
+
+                EditorGUILayout.Space(4);
+
+                for (int i = 0; i < listProp.arraySize; i++)
+                {
+                    SerializedProperty element = listProp.GetArrayElementAtIndex(i);
+                    EditorGUILayout.PropertyField(element, includeChildren: true);
+                }
+            }
+        }
     }
 }
 #endif

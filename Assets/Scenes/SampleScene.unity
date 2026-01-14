@@ -273,18 +273,18 @@ MonoBehaviour:
     Path: event:/Character/Door Close
   _footEventReference:
     Guid:
-      Data1: -1003740608
-      Data2: 1122878646
-      Data3: 1192915876
-      Data4: -364537359
-    Path: event:/Interactables/Barrel Roll
+      Data1: -1700598587
+      Data2: 1321134667
+      Data3: 1258668933
+      Data4: -853691887
+    Path: event:/Character/Dialogue
   _loopReference:
     Guid:
-      Data1: 1958460028
-      Data2: 1217165032
-      Data3: -261621348
-      Data4: -48242944
-    Path: event:/Music/Level 01
+      Data1: -334097318
+      Data2: 1260140306
+      Data3: 651052185
+      Data4: -1957406073
+    Path: event:/Music/Level 03
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
