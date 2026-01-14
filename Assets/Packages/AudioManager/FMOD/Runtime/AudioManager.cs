@@ -28,7 +28,7 @@ namespace ThanhDV.AudioManager.FMOD
                         {
                             _instance = new GameObject("AudioManager").AddComponent<AudioManager>();
 
-                            Debug.Log($"<color=yellow>{_instance.GetType().Name} instance is null!!! Auto create new instance!!!</color>");
+                            DebugLog.Warning($"{_instance.GetType().Name} instance is null!!! Auto create new instance!!!");
                         }
                         DontDestroyOnLoad(_instance);
                     }
@@ -81,7 +81,7 @@ namespace ThanhDV.AudioManager.FMOD
             }
             catch (BusNotFoundException)
             {
-                Debug.Log($"<color=red>[AudioManager - FMOD] Bus not found: '{busPath}'. Please check your FMOD Studio project!!!</color>");
+                DebugLog.Error($"Bus not found: '{busPath}'. Please check your FMOD Studio project!!!");
             }
         }
 
@@ -89,7 +89,7 @@ namespace ThanhDV.AudioManager.FMOD
         {
             if (!_audioBuses.TryGetValue(type, out Bus bus))
             {
-                Debug.Log($"<color=red>[AudioManager - FMOD] Bus not found: '{type.ToString()}'. Please check your FMOD Studio project or Initialize first!!!</color>");
+                DebugLog.Error($"Bus not found: '{type.ToString()}'. Please check your FMOD Studio project or Initialize first!!!");
                 return;
             }
 
@@ -101,7 +101,7 @@ namespace ThanhDV.AudioManager.FMOD
         {
             if (!_audioBuses.TryGetValue(type, out Bus bus))
             {
-                Debug.Log($"<color=red>[AudioManager - FMOD] Bus not found: '{type.ToString()}'. Please check your FMOD Studio project or Initialize first!!!</color>");
+                DebugLog.Error($"Bus not found: '{type.ToString()}'. Please check your FMOD Studio project or Initialize first!!!");
                 return -1f;
             }
 
@@ -232,7 +232,7 @@ namespace ThanhDV.AudioManager.FMOD
             }
             catch (TaskCanceledException)
             {
-                Debug.Log("<color=red>[AudioManager - FMOD] BGM fade-in was cancelled!!!</color>");
+                DebugLog.Error("BGM fade-in was cancelled!!!");
                 if (_bgmInstance.isValid())
                 {
                     _bgmInstance.stop(global::FMOD.Studio.STOP_MODE.IMMEDIATE);
@@ -280,7 +280,7 @@ namespace ThanhDV.AudioManager.FMOD
             }
             catch (TaskCanceledException)
             {
-                Debug.Log("<color=red>[AudioManager - FMOD] BGM fade-in was cancelled!!!</color>");
+                DebugLog.Error("BGM fade-in was cancelled!!!");
                 if (_bgmInstance.isValid())
                 {
                     _bgmInstance.stop(global::FMOD.Studio.STOP_MODE.IMMEDIATE);
@@ -324,7 +324,7 @@ namespace ThanhDV.AudioManager.FMOD
             }
             catch (TaskCanceledException)
             {
-                Debug.Log("<color=red>[AudioManager - FMOD] FadeOutAndRelease task was cancelled!!!</color>");
+                DebugLog.Error("FadeOutAndRelease task was cancelled!!!");
             }
             finally
             {
@@ -390,7 +390,7 @@ namespace ThanhDV.AudioManager.FMOD
             }
             else
             {
-                Debug.Log($"<color=red>[AudioManager - FMOD] Could not find looping sound with ID '{id}' to pause!!!</color>");
+                DebugLog.Error($"Could not find looping sound with ID '{id}' to pause!!!");
             }
         }
 
@@ -406,7 +406,7 @@ namespace ThanhDV.AudioManager.FMOD
             }
             else
             {
-                Debug.Log($"<color=red>[AudioManager - FMOD] Could not find looping sound with ID '{id}' to resume!!!</color>");
+                DebugLog.Error($"Could not find looping sound with ID '{id}' to resume!!!");
             }
         }
 
@@ -427,7 +427,7 @@ namespace ThanhDV.AudioManager.FMOD
             }
             else
             {
-                Debug.Log($"<color=red>[AudioManager - FMOD] Could not find looping sound with ID '{id}' to stop!!!</color>");
+                DebugLog.Error($"Could not find looping sound with ID '{id}' to stop!!!");
             }
         }
 
@@ -443,7 +443,7 @@ namespace ThanhDV.AudioManager.FMOD
         {
             if (!_createdInstances.TryGetValue(id, out instance))
             {
-                Debug.Log($"<color=red>[AudioManager - FMOD] Could not find looping sound with ID '{id}'!!!</color>");
+                DebugLog.Error($"Could not find looping sound with ID '{id}'!!!");
                 return false;
             }
 

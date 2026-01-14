@@ -7,13 +7,13 @@ namespace ThanhDV.AudioManager.FMOD
 {
     public static class PackageImporter
     {
-        private const string DefaultBusesAssetFolder = "Assets/Packages/AudioManager/FMOD/SO";
-        private const string DefaultBusesAssetPath = DefaultBusesAssetFolder + "/" + Common.BUS_SO_NAME + ".asset";
+        private const string DEFAULT_BUS_SO_PATH = Common.DEFAULT_SO_FOLDER + "/" + Common.BUS_SO_NAME + Common.ASSET_EXTENSION;
+        private const string DEFAULT_EVENT_REF_SO_PATH = Common.DEFAULT_SO_FOLDER + "/" + Common.EVENT_REF_SO_NAME + Common.ASSET_EXTENSION;
 
         static PackageImporter()
         {
             string packageVersion = GetPackageVersion();
-            string editorPrefsKey = $"ThanhDV.AudioManager.FMOD.Version.{packageVersion}.Initialized";
+            string editorPrefsKey = $"{Common.EDITOR_PREF_KEY_PREFIX}{packageVersion}";
 
             if (!EditorPrefs.HasKey(editorPrefsKey)) EditorPrefs.SetBool(editorPrefsKey, false);
             if (!EditorPrefs.GetBool(editorPrefsKey, false))
@@ -23,53 +23,87 @@ namespace ThanhDV.AudioManager.FMOD
             }
         }
 
-        public static string GetPackageVersion()
+        private static string FindSOPath()
         {
-            string[] guids = AssetDatabase.FindAssets("t:Script PackageImporter");
-            if (guids.Length == 0)
-            {
-                Debug.Log("<color=yellow>[AudioManager - FMOD] Could not find PackageImporter script to determine version!!!</color>");
-                return "Undefined version";
-            }
-            string scriptPath = AssetDatabase.GUIDToAssetPath(guids[0]);
+            if (AssetDatabase.LoadAssetAtPath<FMODBus>(DEFAULT_BUS_SO_PATH) != null)
+                return DEFAULT_BUS_SO_PATH;
 
-            var packageInfo = UnityEditor.PackageManager.PackageInfo.FindForAssetPath(scriptPath);
-
-            if (packageInfo == null) return "Undefined version";
-
-            return packageInfo.version;
-        }
-
-        private static string FindSaveSettingsPath()
-        {
-            // Prefer a stable, deterministic location.
-            if (AssetDatabase.LoadAssetAtPath<FMODBuses>(DefaultBusesAssetPath) != null)
-                return DefaultBusesAssetPath;
-
-            // Find by exact type (FMODBuses). Optionally filter by name via BUS_SO_NAME.
-            string[] guids = AssetDatabase.FindAssets($"{Common.BUS_SO_NAME} t:{nameof(FMODBuses)}");
-            if (guids == null || guids.Length == 0)
-                guids = AssetDatabase.FindAssets($"t:{nameof(FMODBuses)}");
+            string[] guids = AssetDatabase.FindAssets($"{Common.SAVE_SETTINGS_SO_NAME} t:{nameof(SaveSettings)}");
+            if (guids == null || guids.Length == 0) guids = AssetDatabase.FindAssets($"t:{nameof(SaveSettings)}");
 
             foreach (string guid in guids)
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
-                if (AssetDatabase.LoadAssetAtPath<FMODBuses>(path) != null)
+                if (AssetDatabase.LoadAssetAtPath<SaveSettings>(path) != null)
                     return path;
             }
 
             return CreateSaveSettingsIfNotExist();
         }
 
+        private static string CreateSaveSettingsIfNotExist()
+        {
+            EnsureFolderPath(Common.DEFAULT_SAVE_SETTINGS_SO_FOLDER);
+
+            string assetPath = $"{Common.DEFAULT_SAVE_SETTINGS_SO_FOLDER}/{Common.SAVE_SETTINGS_SO_NAME}{Common.ASSET_EXTENSION}";
+
+            ScriptableObject existing = AssetDatabase.LoadAssetAtPath<ScriptableObject>(assetPath);
+            if (existing != null) return assetPath;
+
+            SaveSettings instance = ScriptableObject.CreateInstance<SaveSettings>();
+            AssetDatabase.CreateAsset(instance, assetPath);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            DebugLog.Warning($"Auto-created SaveSettings at {assetPath}");
+            return assetPath;
+        }
+
+        private static void EnsureFolderPath(string folderPath)
+        {
+            if (string.IsNullOrEmpty(folderPath) || AssetDatabase.IsValidFolder(folderPath)) return;
+
+            string[] parts = folderPath.Split('/');
+            if (parts.Length == 0) return;
+
+            string current = parts[0];
+            for (int i = 1; i < parts.Length; i++)
+            {
+                string next = $"{current}/{parts[i]}";
+                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(current, parts[i]);
+                current = next;
+            }
+        }
+
+        public static string GetPackageVersion()
+        {
+            string[] guids = AssetDatabase.FindAssets("t:MonoScript PackageImporter");
+
+            foreach (string guid in guids)
+            {
+                string scriptPath = AssetDatabase.GUIDToAssetPath(guid);
+                MonoScript script = AssetDatabase.LoadAssetAtPath<MonoScript>(scriptPath);
+
+                if (script != null && script.GetClass() == typeof(PackageImporter))
+                {
+                    var packageInfo = UnityEditor.PackageManager.PackageInfo.FindForAssetPath(scriptPath);
+                    if (packageInfo != null) return packageInfo.version;
+                }
+            }
+
+            DebugLog.Warning("Could not find PackageImporter script to determine version!!!");
+            return "Undefined version";
+        }
+
         public static void MakeAddressable()
         {
-            string assetName = $"{Common.BUS_SO_NAME}.asset";
-            string assetPath = FindSaveSettingsPath();
+            string assetName = $"{Common.SAVE_SETTINGS_SO_NAME}{Common.ASSET_EXTENSION}";
+            string assetPath = FindSOPath();
             string guid = AssetDatabase.AssetPathToGUID(assetPath);
 
             if (string.IsNullOrEmpty(guid))
             {
-                Debug.Log($"<color=red>[GameSaver] Could not find SaveSettings at path {assetPath} to make it addressable. GUID is null or empty!!!</color>");
+                DebugLog.Error($"Could not find SaveSettings at path {assetPath} to make it addressable. GUID is null or empty!!!");
                 return;
             }
 
@@ -83,32 +117,32 @@ namespace ThanhDV.AudioManager.FMOD
                 }
                 catch
                 {
-                    Debug.Log($"<color=red>[GameSaver] Addressable Asset Settings not found. Please initialize Addressables in your project (Window > Asset Management > Addressables > Groups, then click 'Create Addressables Settings')!!!</color>");
+                    DebugLog.Error("Addressable Asset Settings not found. Please initialize Addressables in your project (Window > Asset Management > Addressables > Groups, then click 'Create Addressables Settings')!!!");
                     return;
                 }
             }
 
             if (settings == null)
             {
-                Debug.Log($"<color=red>[GameSaver] Failed to initialize Addressable Asset Settings!!!</color>");
+                DebugLog.Error("Failed to initialize Addressable Asset Settings!!!");
                 return;
             }
 
-            AddressableAssetGroup group = settings.FindGroup("GameSaver");
+            AddressableAssetGroup group = settings.FindGroup(Common.ADDRESSABLE_GROUP);
             if (group == null)
             {
                 try
                 {
-                    group = settings.CreateGroup("GameSaver", false, false, true, null, typeof(AddressableGroupSchemas.BundledAssetGroupSchema));
+                    group = settings.CreateGroup(Common.ADDRESSABLE_GROUP, false, false, true, null, typeof(AddressableGroupSchemas.BundledAssetGroupSchema));
                     if (group == null)
                     {
-                        Debug.Log($"<color=red>[GameSaver] Failed to create Addressable Asset Group 'GameSaver'!!!</color>");
+                        DebugLog.Error($"Failed to create Addressable Asset Group '{Common.ADDRESSABLE_GROUP}'!!!");
                         return;
                     }
                 }
                 catch (System.Exception ex)
                 {
-                    Debug.Log($"<color=red>[GameSaver] Exception creating Addressable group: {ex.Message}. Please manually initialize Addressables first!!!</color>");
+                    DebugLog.Error($"Exception creating Addressable group: {ex.Message}. Please manually initialize Addressables first!!!");
                     return;
                 }
             }
@@ -124,18 +158,18 @@ namespace ThanhDV.AudioManager.FMOD
                 AddressableAssetEntry entry = settings.CreateOrMoveEntry(guid, group, false, false);
                 if (entry != null)
                 {
-                    entry.address = Constant.SAVE_SETTINGS_NAME;
+                    entry.address = Common.SAVE_SETTINGS_SO_NAME;
                     settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryModified, entry, true);
-                    Debug.Log($"<color=green>[GameSaver] Made ScriptableObject '{assetName}' addressable with address '{entry.address}' in group '{group.Name}'!!!</color>");
+                    DebugLog.Success($"Made ScriptableObject '{assetName}' addressable with address '{entry.address}' in group '{group.Name}'!!!");
                 }
                 else
                 {
-                    Debug.Log($"<color=red>[GameSaver] Failed to create or move Addressable entry for {assetName} (GUID: {guid})!!!</color>");
+                    DebugLog.Error($"Failed to create or move Addressable entry for {assetName} (GUID: {guid})!!!");
                 }
             }
             catch (System.Exception ex)
             {
-                Debug.Log($"<color=red>[GameSaver] Exception creating Addressable entry: {ex.Message}!!!</color>");
+                DebugLog.Error($"Exception creating Addressable entry: {ex.Message}!!!");
             }
         }
     }
