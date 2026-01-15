@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 
 namespace ThanhDV.AudioManager.FMOD
 {
@@ -15,7 +17,10 @@ namespace ThanhDV.AudioManager.FMOD
 
         private bool _hasDataUnsaved = false;
 
-        [MenuItem("Tools/ThanhDV/Audio Manager/Bus Manager", false, 0)]
+        private FMODReferences _fMODReferences;
+        private bool _isLoadingFMODReferences = false;
+
+        [MenuItem(Common.MENU_ITEM + "Bus Manager", false, 1)]
         public static void ShowWindow()
         {
             BusManagerEditorWindow window = GetWindow<BusManagerEditorWindow>();
@@ -26,8 +31,10 @@ namespace ThanhDV.AudioManager.FMOD
 
         private void OnEnable()
         {
+            _hasDataUnsaved = false;
             _so = new SerializedObject(this);
             _busesProp = _so.FindProperty(nameof(_buses));
+            LoadBuses();
         }
 
         private void OnGUI()
@@ -36,10 +43,12 @@ namespace ThanhDV.AudioManager.FMOD
             string subtitle = "Created by ThanhDV";
             EditorHelper.CreateHeader(title, subtitle);
 
+            if (!FMODReferencesEditorAsset.DrawEnsureFMODReferencesUI(_isLoadingFMODReferences, _fMODReferences, LoadBuses)) return;
+
             EditorGUI.BeginDisabledGroup(_hasDataUnsaved);
             if (GUILayout.Button(new GUIContent("Refresh", "Reload buses from data and refresh displayed data.")))
             {
-                // Refresh()
+                LoadBuses();
             }
             EditorGUI.EndDisabledGroup();
 
@@ -68,7 +77,19 @@ namespace ThanhDV.AudioManager.FMOD
 
             EditorGUILayout.EndScrollView();
 
-            _so.ApplyModifiedProperties();
+            if (_so.ApplyModifiedProperties())
+            {
+                _hasDataUnsaved = true;
+            }
+        }
+
+        private async void LoadBuses()
+        {
+            if (_isLoadingFMODReferences) return;
+            _isLoadingFMODReferences = true;
+            _fMODReferences = await FMODReferencesEditorAsset.LoadOrCreateAsync(_fMODReferences);
+            _buses = new(_fMODReferences.Buses);
+            _isLoadingFMODReferences = false;
         }
     }
 }

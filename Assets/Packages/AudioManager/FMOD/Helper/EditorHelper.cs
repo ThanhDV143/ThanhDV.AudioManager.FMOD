@@ -77,6 +77,22 @@ namespace ThanhDV.AudioManager.FMOD
                 }
             }
         }
+
+        public static void EnsureFolderPath(string folderPath)
+        {
+            if (string.IsNullOrEmpty(folderPath) || AssetDatabase.IsValidFolder(folderPath)) return;
+
+            string[] parts = folderPath.Split('/');
+            if (parts.Length == 0) return;
+
+            string current = parts[0];
+            for (int i = 1; i < parts.Length; i++)
+            {
+                string next = $"{current}/{parts[i]}";
+                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(current, parts[i]);
+                current = next;
+            }
+        }
     }
 }
 #endif

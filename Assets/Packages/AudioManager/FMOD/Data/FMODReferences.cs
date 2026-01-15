@@ -7,23 +7,23 @@ namespace ThanhDV.AudioManager.FMOD
 {
     public class FMODReferences : ScriptableObject
     {
-        [SerializeField] private List<BusEntry> _buses = new();
-        [SerializeField] private List<EventReferenceEntry> _eventReferences = new();
+        [SerializeField] private List<BusEntry> _buses = new(); public List<BusEntry> Buses => _buses;
+        [SerializeField] private List<EventReferenceEntry> _eventReferences = new(); public List<EventReferenceEntry> EventReferences => _eventReferences;
 
         private Dictionary<string, Bus> _cachedBuses;
         private Dictionary<string, EventReference> _cachedEventReferences;
 
-        public bool TryGetBus(string key, out Bus bus)
+        public Bus GetBus(string key)
         {
             if (_cachedBuses == null)
             {
                 InitializeBusCache();
             }
 
-            if (_cachedBuses.TryGetValue(key, out bus)) return true;
+            if (_cachedBuses.TryGetValue(key, out Bus bus)) return bus;
 
             DebugLog.Error($"Bus with key '{key}' not found!!!");
-            return false;
+            return default;
         }
 
         public bool TryGetEventReference(string key, out EventReference eventReference)

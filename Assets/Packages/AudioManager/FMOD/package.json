@@ -13,7 +13,9 @@
         "email": "vanthanh1998@gmail.com",
         "url": "https://books.thanhdv.icu/"
     },
-    "dependencies": {},
+    "dependencies": {
+        "com.unity.addressables": "1.22.3"
+    },
     "tpmDependencies": {
         "FMOD": "2.02.30"
     },

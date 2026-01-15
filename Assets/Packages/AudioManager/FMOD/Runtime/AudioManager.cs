@@ -61,6 +61,8 @@ namespace ThanhDV.AudioManager.FMOD
 
         private Dictionary<AudioType, Bus> _audioBuses;
 
+        private FMODReferences _fMODReferences; public FMODReferences FMODReferences => _fMODReferences;
+
         #region Audio volume
 
         private void InitializeAudioBuses()

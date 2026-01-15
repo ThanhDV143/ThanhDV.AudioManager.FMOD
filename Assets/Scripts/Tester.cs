@@ -73,6 +73,8 @@ namespace ThanhDV.AudioManager.FMOD
             //     float volume = AudioManager.Instance.GetVolume(AudioType.SFX);
             //     AudioManager.Instance.SetVolume(AudioType.SFX, volume <= 0 ? 1f : 0f);
             // }
+
+            FMODBus.MASTER.setVolume(1);
         }
     }
 }

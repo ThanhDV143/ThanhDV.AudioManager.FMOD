@@ -15,7 +15,10 @@ namespace ThanhDV.AudioManager.FMOD
 
         private bool _hasDataUnsaved = false;
 
-        [MenuItem("Tools/ThanhDV/Audio Manager/EventReference Manager", false, 1)]
+        private FMODReferences _fMODReferences;
+        private bool _isLoadingFMODReferences = false;
+
+        [MenuItem(Common.MENU_ITEM + "EventReference Manager", false, 2)]
         public static void ShowWindow()
         {
             EventRefEditorWindow window = GetWindow<EventRefEditorWindow>();
@@ -26,8 +29,11 @@ namespace ThanhDV.AudioManager.FMOD
 
         private void OnEnable()
         {
+            _hasDataUnsaved = false;
             _so = new SerializedObject(this);
             _eventReferencesProp = _so.FindProperty(nameof(_eventReferences));
+
+            LoadEventReferences();
         }
 
         private void OnGUI()
@@ -36,10 +42,12 @@ namespace ThanhDV.AudioManager.FMOD
             string subtitle = "Created by ThanhDV";
             EditorHelper.CreateHeader(title, subtitle);
 
+            if (!FMODReferencesEditorAsset.DrawEnsureFMODReferencesUI(_isLoadingFMODReferences, _fMODReferences, LoadEventReferences)) return;
+
             EditorGUI.BeginDisabledGroup(_hasDataUnsaved);
             if (GUILayout.Button(new GUIContent("Refresh", "Reload buses from data and refresh displayed data.")))
             {
-                // Refresh()
+                LoadEventReferences();
             }
             EditorGUI.EndDisabledGroup();
 
@@ -68,7 +76,19 @@ namespace ThanhDV.AudioManager.FMOD
 
             EditorGUILayout.EndScrollView();
 
-            _so.ApplyModifiedProperties();
+            if (_so.ApplyModifiedProperties())
+            {
+                _hasDataUnsaved = true;
+            }
+        }
+
+        private async void LoadEventReferences()
+        {
+            if (_isLoadingFMODReferences) return;
+            _isLoadingFMODReferences = true;
+            _fMODReferences = await FMODReferencesEditorAsset.LoadOrCreateAsync(_fMODReferences);
+            _eventReferences = new(_fMODReferences.EventReferences);
+            _isLoadingFMODReferences = false;
         }
     }
 }

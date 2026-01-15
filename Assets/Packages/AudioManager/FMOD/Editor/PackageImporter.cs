@@ -1,15 +1,13 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEditor;
+using UnityEditor.AddressableAssets;
+using UnityEditor.AddressableAssets.Settings;
 using UnityEngine;
+using AddressableGroupSchemas = UnityEditor.AddressableAssets.Settings.GroupSchemas;
 
 namespace ThanhDV.AudioManager.FMOD
 {
     public static class PackageImporter
     {
-        private const string DEFAULT_BUS_SO_PATH = Common.DEFAULT_SO_FOLDER + "/" + Common.BUS_SO_NAME + Common.ASSET_EXTENSION;
-        private const string DEFAULT_EVENT_REF_SO_PATH = Common.DEFAULT_SO_FOLDER + "/" + Common.EVENT_REF_SO_NAME + Common.ASSET_EXTENSION;
-
         static PackageImporter()
         {
             string packageVersion = GetPackageVersion();
@@ -25,54 +23,7 @@ namespace ThanhDV.AudioManager.FMOD
 
         private static string FindSOPath()
         {
-            if (AssetDatabase.LoadAssetAtPath<FMODBus>(DEFAULT_BUS_SO_PATH) != null)
-                return DEFAULT_BUS_SO_PATH;
-
-            string[] guids = AssetDatabase.FindAssets($"{Common.SAVE_SETTINGS_SO_NAME} t:{nameof(SaveSettings)}");
-            if (guids == null || guids.Length == 0) guids = AssetDatabase.FindAssets($"t:{nameof(SaveSettings)}");
-
-            foreach (string guid in guids)
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guid);
-                if (AssetDatabase.LoadAssetAtPath<SaveSettings>(path) != null)
-                    return path;
-            }
-
-            return CreateSaveSettingsIfNotExist();
-        }
-
-        private static string CreateSaveSettingsIfNotExist()
-        {
-            EnsureFolderPath(Common.DEFAULT_SAVE_SETTINGS_SO_FOLDER);
-
-            string assetPath = $"{Common.DEFAULT_SAVE_SETTINGS_SO_FOLDER}/{Common.SAVE_SETTINGS_SO_NAME}{Common.ASSET_EXTENSION}";
-
-            ScriptableObject existing = AssetDatabase.LoadAssetAtPath<ScriptableObject>(assetPath);
-            if (existing != null) return assetPath;
-
-            SaveSettings instance = ScriptableObject.CreateInstance<SaveSettings>();
-            AssetDatabase.CreateAsset(instance, assetPath);
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-
-            DebugLog.Warning($"Auto-created SaveSettings at {assetPath}");
-            return assetPath;
-        }
-
-        private static void EnsureFolderPath(string folderPath)
-        {
-            if (string.IsNullOrEmpty(folderPath) || AssetDatabase.IsValidFolder(folderPath)) return;
-
-            string[] parts = folderPath.Split('/');
-            if (parts.Length == 0) return;
-
-            string current = parts[0];
-            for (int i = 1; i < parts.Length; i++)
-            {
-                string next = $"{current}/{parts[i]}";
-                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(current, parts[i]);
-                current = next;
-            }
+            return FMODReferencesEditorAsset.FindOrCreatePath();
         }
 
         public static string GetPackageVersion()
@@ -97,7 +48,7 @@ namespace ThanhDV.AudioManager.FMOD
 
         public static void MakeAddressable()
         {
-            string assetName = $"{Common.SAVE_SETTINGS_SO_NAME}{Common.ASSET_EXTENSION}";
+            string assetName = $"{Common.FMOD_REF_SO_NAME}{Common.ASSET_EXTENSION}";
             string assetPath = FindSOPath();
             string guid = AssetDatabase.AssetPathToGUID(assetPath);
 
@@ -158,7 +109,7 @@ namespace ThanhDV.AudioManager.FMOD
                 AddressableAssetEntry entry = settings.CreateOrMoveEntry(guid, group, false, false);
                 if (entry != null)
                 {
-                    entry.address = Common.SAVE_SETTINGS_SO_NAME;
+                    entry.address = Common.FMOD_REF_SO_NAME;
                     settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryModified, entry, true);
                     DebugLog.Success($"Made ScriptableObject '{assetName}' addressable with address '{entry.address}' in group '{group.Name}'!!!");
                 }
