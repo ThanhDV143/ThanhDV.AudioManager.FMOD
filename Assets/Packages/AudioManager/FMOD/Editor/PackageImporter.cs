@@ -1,7 +1,6 @@
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
-using UnityEngine;
 using AddressableGroupSchemas = UnityEditor.AddressableAssets.Settings.GroupSchemas;
 
 namespace ThanhDV.AudioManager.FMOD

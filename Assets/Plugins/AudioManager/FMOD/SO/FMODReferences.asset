@@ -12,39 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a7384c8dbba7403438e891855d389855, type: 3}
   m_Name: FMODReferences
   m_EditorClassIdentifier: 
-  _buses:
-  - Key: A
-    BusPath: B
-  - Key: C
-    BusPath: D
-  - Key: E
-    BusPath: F
-  - Key: G
-    BusPath: H
-  - Key: I
-    BusPath: J
-  _eventReferences:
-  - Key: S1
-    EventReference:
-      Guid:
-        Data1: -1147629186
-        Data2: 1106302555
-        Data3: 130402976
-        Data4: 239065686
-      Path: event:/Ambience/City
-  - Key: S2
-    EventReference:
-      Guid:
-        Data1: 614123342
-        Data2: 1179152036
-        Data3: 1814092417
-        Data4: 28844622
-      Path: event:/Ambience/Country
-  - Key: S3
-    EventReference:
-      Guid:
-        Data1: 0
-        Data2: 0
-        Data3: 0
-        Data4: 0
-      Path: 
+  _buses: []
+  _eventReferences: []

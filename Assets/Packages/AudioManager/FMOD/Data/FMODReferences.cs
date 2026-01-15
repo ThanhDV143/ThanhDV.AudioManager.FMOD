@@ -7,11 +7,17 @@ namespace ThanhDV.AudioManager.FMOD
 {
     public class FMODReferences : ScriptableObject
     {
-        [SerializeField] private List<BusEntry> _buses = new(); public List<BusEntry> Buses => _buses;
-        [SerializeField] private List<EventReferenceEntry> _eventReferences = new(); public List<EventReferenceEntry> EventReferences => _eventReferences;
+        [SerializeField] private List<BusEntry> _buses = new();
+        [SerializeField] private List<EventReferenceEntry> _eventReferences = new();
 
         private Dictionary<string, Bus> _cachedBuses;
         private Dictionary<string, EventReference> _cachedEventReferences;
+
+        public void SetBuses(List<BusEntry> busEntries) => _buses = new(busEntries);
+        public List<BusEntry> GetBuses() => _buses;
+
+        public void SetEventReferences(List<EventReferenceEntry> eventReferenceEntries) => _eventReferences = new(eventReferenceEntries);
+        public List<EventReferenceEntry> GetEventReferences() => _eventReferences;
 
         public Bus GetBus(string key)
         {

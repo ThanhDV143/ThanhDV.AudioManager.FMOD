@@ -1,11 +1,15 @@
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
+using System.Collections.Generic;
+using UnityEditorInternal;
 
 namespace ThanhDV.AudioManager.FMOD
 {
     public static class EditorHelper
     {
+        private static readonly Dictionary<string, ReorderableList> _reorderableListCache = new();
+
         public static void CreateHeader(string title, string subtitle)
         {
             // Header
@@ -39,43 +43,33 @@ namespace ThanhDV.AudioManager.FMOD
 
         public static void DrawListWithoutHeader(SerializedProperty listProp, string countLabel)
         {
-            if (listProp == null)
-                return;
+            if (listProp == null) return;
 
-            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            string key = $"{listProp.serializedObject.targetObject.GetInstanceID()}-{listProp.propertyPath}";
+
+            if (!_reorderableListCache.TryGetValue(key, out var list) || list.serializedProperty != listProp)
             {
-                int currentSize = listProp.arraySize;
-                int newSize = currentSize;
-
-                float rowHeight = EditorGUIUtility.singleLineHeight;
-                Rect row = EditorGUILayout.GetControlRect(false, rowHeight);
-
-                const float labelWidth = 150f;
-                const float buttonWidth = 20f;
-                const float spacing = 4f;
-
-                Rect labelRect = new Rect(row.x, row.y + 1f, labelWidth, rowHeight);
-                Rect minusRect = new Rect(row.xMax - buttonWidth, row.y + 2f, buttonWidth, rowHeight);
-                Rect plusRect = new Rect(minusRect.x - spacing - buttonWidth, row.y + 2f, buttonWidth, rowHeight);
-                Rect fieldRect = new Rect(labelRect.xMax + spacing, row.y + 2.75f, plusRect.x - spacing - (labelRect.xMax + spacing), rowHeight);
-
-                EditorGUI.LabelField(labelRect, countLabel);
-                newSize = EditorGUI.DelayedIntField(fieldRect, currentSize);
-                if (GUI.Button(plusRect, "+")) newSize = currentSize + 1;
-                if (GUI.Button(minusRect, "-")) newSize = Mathf.Max(0, currentSize - 1);
-
-                newSize = Mathf.Max(0, newSize);
-                if (newSize != currentSize)
-                    listProp.arraySize = newSize;
-
-                EditorGUILayout.Space(4);
-
-                for (int i = 0; i < listProp.arraySize; i++)
+                list = new ReorderableList(listProp.serializedObject, listProp, true, true, true, true)
                 {
-                    SerializedProperty element = listProp.GetArrayElementAtIndex(i);
-                    EditorGUILayout.PropertyField(element, includeChildren: true);
-                }
+                    drawHeaderCallback = rect => EditorGUI.LabelField(rect, countLabel),
+                    drawElementCallback = (rect, index, isActive, isFocused) =>
+                    {
+                        if (index < 0 || index >= listProp.arraySize) return;
+                        SerializedProperty element = listProp.GetArrayElementAtIndex(index);
+                        rect.y += 2;
+                        EditorGUI.PropertyField(new Rect(rect.x, rect.y, rect.width, EditorGUI.GetPropertyHeight(element, true)), element, GUIContent.none, true);
+                    },
+                    elementHeightCallback = index =>
+                    {
+                        if (index < 0 || index >= listProp.arraySize) return 0;
+                        return EditorGUI.GetPropertyHeight(listProp.GetArrayElementAtIndex(index), true) + 4;
+                    }
+                };
+
+                _reorderableListCache[key] = list;
             }
+
+            list.DoLayoutList();
         }
 
         public static void EnsureFolderPath(string folderPath)
