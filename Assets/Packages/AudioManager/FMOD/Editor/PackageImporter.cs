@@ -5,6 +5,7 @@ using AddressableGroupSchemas = UnityEditor.AddressableAssets.Settings.GroupSche
 
 namespace ThanhDV.AudioManager.FMOD
 {
+    [InitializeOnLoad]
     public static class PackageImporter
     {
         static PackageImporter()
@@ -47,7 +48,7 @@ namespace ThanhDV.AudioManager.FMOD
 
         public static void MakeAddressable()
         {
-            string assetName = $"{Common.FMOD_REF_SO_NAME}{Common.ASSET_EXTENSION}";
+            string assetName = $"{Common.FMOD_REF_SO_NAME}{Common.SO_EXTENSION}";
             string assetPath = FindSOPath();
             string guid = AssetDatabase.AssetPathToGUID(assetPath);
 

@@ -19,6 +19,17 @@ namespace ThanhDV.AudioManager.FMOD
         public void SetEventReferences(List<EventReferenceEntry> eventReferenceEntries) => _eventReferences = new(eventReferenceEntries);
         public List<EventReferenceEntry> GetEventReferences() => _eventReferences;
 
+        private bool _isInitialized = false;
+
+        public void Initialize()
+        {
+            if (_isInitialized) return;
+
+            InitializeBusCache();
+            InitializeEventReferenceCache();
+            _isInitialized = true;
+        }
+
         public Bus GetBus(string key)
         {
             if (_cachedBuses == null)
@@ -32,17 +43,17 @@ namespace ThanhDV.AudioManager.FMOD
             return default;
         }
 
-        public bool TryGetEventReference(string key, out EventReference eventReference)
+        public EventReference GetEventReference(string key)
         {
             if (_cachedEventReferences == null)
             {
                 InitializeEventReferenceCache();
             }
 
-            if (_cachedEventReferences.TryGetValue(key, out eventReference)) return true;
+            if (_cachedEventReferences.TryGetValue(key, out EventReference eventReference)) return eventReference;
 
             DebugLog.Error($"EventReference with key '{key}' not found!!!");
-            return false;
+            return default;
         }
 
         private void InitializeBusCache()

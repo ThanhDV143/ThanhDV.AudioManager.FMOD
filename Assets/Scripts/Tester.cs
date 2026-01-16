@@ -11,6 +11,7 @@ namespace ThanhDV.AudioManager.FMOD
         [SerializeField] private EventReference _bgmEventReference;
         [SerializeField] private EventReference _footEventReference;
         [SerializeField] private EventReference _loopReference;
+        [SerializeField] private EventReference _oneShot;
 
         void Start()
         {
@@ -21,7 +22,7 @@ namespace ThanhDV.AudioManager.FMOD
         {
             if (Input.GetKeyDown(KeyCode.Alpha1))
             {
-                AudioManager.Instance.PlayLoop("Loop", _loopReference);
+                AudioManager.Instance.PlayOneShot(_oneShot);
             }
 
             if (Input.GetKeyDown(KeyCode.Alpha2))
@@ -73,8 +74,6 @@ namespace ThanhDV.AudioManager.FMOD
             //     float volume = AudioManager.Instance.GetVolume(AudioType.SFX);
             //     AudioManager.Instance.SetVolume(AudioType.SFX, volume <= 0 ? 1f : 0f);
             // }
-
-            FMODBus.MASTER.setVolume(1);
         }
     }
 }

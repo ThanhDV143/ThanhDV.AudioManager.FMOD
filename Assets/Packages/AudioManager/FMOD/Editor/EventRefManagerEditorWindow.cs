@@ -57,6 +57,12 @@ namespace ThanhDV.AudioManager.FMOD
             {
                 CleanEventReferences();
                 SaveEventReferences();
+                GenerateWrapper();
+            }
+
+            if (GUILayout.Button(new GUIContent("Discard Changes", "Discard all changes.")))
+            {
+                LoadEventReferences();
             }
             EditorGUI.EndDisabledGroup();
 
@@ -268,6 +274,11 @@ namespace ThanhDV.AudioManager.FMOD
             }
 
             _hasDataUnsaved = false;
+        }
+
+        private void GenerateWrapper()
+        {
+            WrapperGenerator.GenerateFMODEventReference(_fMODReferences.GetEventReferences());
         }
     }
 }

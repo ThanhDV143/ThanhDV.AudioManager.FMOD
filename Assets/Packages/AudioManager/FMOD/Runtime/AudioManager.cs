@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using FMOD.Studio;
 using FMODUnity;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace ThanhDV.AudioManager.FMOD
 {
@@ -43,10 +45,10 @@ namespace ThanhDV.AudioManager.FMOD
         {
             if (_instance == null)
             {
-                _instance = this as AudioManager;
+                _instance = this;
                 DontDestroyOnLoad(_instance);
 
-                InitializeAudioBuses();
+                Initialize();
 
                 return;
             }
@@ -59,39 +61,94 @@ namespace ThanhDV.AudioManager.FMOD
         private CancellationTokenSource _bgmOperationCTS;
         private readonly Dictionary<string, EventInstance> _createdInstances = new();
 
-        private Dictionary<AudioType, Bus> _audioBuses;
+        private Dictionary<string, Bus> _audioBuses;
 
         private FMODReferences _fMODReferences; public FMODReferences FMODReferences => _fMODReferences;
+        private AsyncOperationHandle<FMODReferences> _fMODReferencesHandle;
+        private bool _hasSaveSettingsHandle;
 
-        #region Audio volume
+        private TaskCompletionSource<bool> _initializationTCS;
+        public Task WhenInitialized => _initializationTCS?.Task ?? Task.CompletedTask;
+
+        #region Initialize
+
+        private void Initialize()
+        {
+            _initializationTCS = new TaskCompletionSource<bool>();
+            _ = InitializeAsync();
+        }
+
+        private async Task InitializeAsync()
+        {
+            await TryLoadFMODReferences();
+
+            _fMODReferences.Initialize();
+            InitializeAudioBuses();
+
+            _initializationTCS.TrySetResult(true);
+        }
 
         private void InitializeAudioBuses()
         {
             _audioBuses = new();
 
-            InitializeAudioBus(AudioType.MASTER, "bus:/");
-            InitializeAudioBus(AudioType.BGM, "bus:/BGM");
-            InitializeAudioBus(AudioType.SFX, "bus:/SFX");
+            List<BusEntry> buses = _fMODReferences.GetBuses();
+            for (int i = 0; i < buses.Count; i++)
+            {
+                BusEntry busEntry = buses[i];
+                InitializeAudioBus(busEntry);
+            }
         }
 
-        private void InitializeAudioBus(AudioType type, string busPath)
+        private void InitializeAudioBus(BusEntry busEntry)
         {
             try
             {
-                Bus masterBus = RuntimeManager.GetBus(busPath);
-                _audioBuses.TryAdd(type, masterBus);
+                Bus bus = RuntimeManager.GetBus(busEntry.BusPath);
+                _audioBuses.TryAdd(busEntry.Key, bus);
             }
             catch (BusNotFoundException)
             {
-                DebugLog.Error($"Bus not found: '{busPath}'. Please check your FMOD Studio project!!!");
+                DebugLog.Error($"Bus not found: '{busEntry.BusPath}'. Please check your FMOD Studio project!!!");
             }
         }
 
-        public void SetVolume(AudioType type, float volume)
+        private async Task TryLoadFMODReferences()
         {
-            if (!_audioBuses.TryGetValue(type, out Bus bus))
+            if (_fMODReferences != null) return;
+            try
             {
-                DebugLog.Error($"Bus not found: '{type.ToString()}'. Please check your FMOD Studio project or Initialize first!!!");
+                _fMODReferencesHandle = Addressables.LoadAssetAsync<FMODReferences>(Common.FMOD_REF_SO_NAME);
+                _hasSaveSettingsHandle = true;
+                _fMODReferences = await _fMODReferencesHandle.Task;
+
+                if (_fMODReferences == null)
+                {
+                    DebugLog.Error($"Could not load FMODReferences from Addressables. A default FMODReferences object will be created. Please ensure a '{Common.FMOD_REF_SO_NAME}' asset exists and is configured in Addressables!!!");
+                    _fMODReferences = ScriptableObject.CreateInstance<FMODReferences>();
+
+                    if (_fMODReferencesHandle.IsValid())
+                        Addressables.Release(_fMODReferencesHandle);
+                    _hasSaveSettingsHandle = false;
+                }
+            }
+            catch (Exception e)
+            {
+                DebugLog.Error($"Could not load FMODReferences from Addressables. A default FMODReferences object will be created. Please ensure a '{Common.FMOD_REF_SO_NAME}' asset exists and is configured in Addressables!!!\n{e}");
+                _fMODReferences = _fMODReferences != null ? _fMODReferences : ScriptableObject.CreateInstance<FMODReferences>();
+
+                if (_hasSaveSettingsHandle && _fMODReferencesHandle.IsValid()) Addressables.Release(_fMODReferencesHandle);
+                _hasSaveSettingsHandle = false;
+            }
+        }
+        #endregion
+
+        #region Audio volume
+        public void SetVolume(Bus bus, float volume)
+        {
+            if (!bus.isValid())
+            {
+                DebugLog.Error($"Bus is invalid!!!");
                 return;
             }
 
@@ -99,12 +156,12 @@ namespace ThanhDV.AudioManager.FMOD
             bus.setVolume(volume);
         }
 
-        public float GetVolume(AudioType type)
+        public float GetVolume(Bus bus)
         {
-            if (!_audioBuses.TryGetValue(type, out Bus bus))
+            if (!bus.isValid())
             {
-                DebugLog.Error($"Bus not found: '{type.ToString()}'. Please check your FMOD Studio project or Initialize first!!!");
-                return -1f;
+                DebugLog.Error($"Bus is invalid!!!");
+                return -1;
             }
 
             bus.getVolume(out float volume);
@@ -120,6 +177,8 @@ namespace ThanhDV.AudioManager.FMOD
         /// <param name="sfxReference">The FMOD Event Reference for the SFX.</param>
         public void PlayOneShot(EventReference sfxReference)
         {
+            if (sfxReference.IsNull()) return;
+
             RuntimeManager.PlayOneShot(sfxReference);
         }
 
@@ -129,6 +188,8 @@ namespace ThanhDV.AudioManager.FMOD
         /// <param name="sfxPath">The Path of FMOD Event Reference for the SFX.</param>
         public void PlayOneShot(string sfxPath)
         {
+            if (sfxPath.IsEventReferenceNull()) return;
+
             RuntimeManager.PlayOneShot(sfxPath);
         }
 
@@ -139,6 +200,8 @@ namespace ThanhDV.AudioManager.FMOD
         /// <param name="position">The world position to play the sound at.</param>
         public void PlayOneShot(EventReference sfxReference, Vector3 position)
         {
+            if (sfxReference.IsNull()) return;
+
             RuntimeManager.PlayOneShot(sfxReference, position);
         }
 
@@ -149,6 +212,8 @@ namespace ThanhDV.AudioManager.FMOD
         /// <param name="position">The world position to play the sound at.</param>
         public void PlayOneShot(string sfxPath, Vector3 position)
         {
+            if (sfxPath.IsEventReferenceNull()) return;
+
             RuntimeManager.PlayOneShot(sfxPath, position);
         }
         #endregion
@@ -345,9 +410,9 @@ namespace ThanhDV.AudioManager.FMOD
         /// <param name="loopPath">The Path of FMOD Event Reference for the looping sound.</param>
         /// <param name="attachedObject">Optional: The GameObject to attach the sound to for 3D positioning.</param>
         /// <param name="attachedRigidbody">Optional: The Rigidbody to attach the sound to for Doppler effect.</param>
-        public void PlayLoop(string id, string loopPath, GameObject attachedObject = null, Rigidbody attachedRigidbody = null)
+        public EventInstance PlayLoop(string id, string loopPath, GameObject attachedObject = null, Rigidbody attachedRigidbody = null)
         {
-            if (_createdInstances.ContainsKey(id)) return;
+            if (_createdInstances.ContainsKey(id)) return _createdInstances[id];
 
             EventInstance loopInstance = RuntimeManager.CreateInstance(loopPath);
             if (attachedObject != null)
@@ -357,6 +422,8 @@ namespace ThanhDV.AudioManager.FMOD
 
             loopInstance.start();
             _createdInstances.Add(id, loopInstance);
+
+            return loopInstance;
         }
 
         /// <summary>
@@ -366,9 +433,9 @@ namespace ThanhDV.AudioManager.FMOD
         /// <param name="loopReference">The FMOD Event Reference for the looping sound.</param>
         /// <param name="attachedObject">Optional: The GameObject to attach the sound to for 3D positioning.</param>
         /// <param name="attachedRigidbody">Optional: The Rigidbody to attach the sound to for Doppler effect.</param>
-        public void PlayLoop(string id, EventReference loopReference, GameObject attachedObject = null, Rigidbody attachedRigidbody = null)
+        public EventInstance PlayLoop(string id, EventReference loopReference, GameObject attachedObject = null, Rigidbody attachedRigidbody = null)
         {
-            if (_createdInstances.ContainsKey(id)) return;
+            if (_createdInstances.ContainsKey(id)) return _createdInstances[id];
 
             EventInstance loopInstance = RuntimeManager.CreateInstance(loopReference);
             if (attachedObject != null)
@@ -378,6 +445,8 @@ namespace ThanhDV.AudioManager.FMOD
 
             loopInstance.start();
             _createdInstances.Add(id, loopInstance);
+
+            return loopInstance;
         }
 
         /// <summary>
@@ -411,7 +480,6 @@ namespace ThanhDV.AudioManager.FMOD
                 DebugLog.Error($"Could not find looping sound with ID '{id}' to resume!!!");
             }
         }
-
 
         /// <summary>
         /// Stops a looping sound identified by its unique ID.
@@ -474,14 +542,13 @@ namespace ThanhDV.AudioManager.FMOD
                 ins.Value.release();
             }
             _createdInstances.Clear();
+
+            if (_hasSaveSettingsHandle && _fMODReferencesHandle.IsValid())
+            {
+                Addressables.Release(_fMODReferencesHandle);
+                _hasSaveSettingsHandle = false;
+            }
         }
         #endregion
-    }
-
-    public enum AudioType
-    {
-        MASTER,
-        BGM,
-        SFX
     }
 }
