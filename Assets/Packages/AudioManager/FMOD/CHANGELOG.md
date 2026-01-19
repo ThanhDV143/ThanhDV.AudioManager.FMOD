@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [2.0.0] - 2026-01-19
+### Updated
+- Improved the `WaitForInitializeDone()` flow to ensure AudioManager is fully initialized before any `Play`/`Pause`/`Stop` operations.
+### Added
+- Added a Windows Editor tool to auto-generate code for `FMODBus` and `FMODEventReference`.
+
 ## [1.0.2] - 2025-12-26
 ### Updated
 - Update method `PlayLoop()` to easy optimize.

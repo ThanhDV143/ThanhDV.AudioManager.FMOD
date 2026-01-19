@@ -12,6 +12,7 @@ namespace ThanhDV.AudioManager.FMOD
 {
     public class AudioManager : MonoBehaviour
     {
+#if !INJECTION_ENABLED
         #region Singleton
         private static AudioManager _instance;
         private static readonly object _lock = new();
@@ -46,16 +47,21 @@ namespace ThanhDV.AudioManager.FMOD
             if (_instance == null)
             {
                 _instance = this;
-                DontDestroyOnLoad(_instance);
-
                 Initialize();
-
+                DontDestroyOnLoad(_instance);
                 return;
             }
 
             Destroy(gameObject);
         }
         #endregion
+#else
+        private void Awake()
+        {
+            Initialize();
+            DontDestroyOnLoad(gameObject);
+        }
+#endif
 
         private EventInstance _bgmInstance;
         private CancellationTokenSource _bgmOperationCTS;
@@ -68,24 +74,49 @@ namespace ThanhDV.AudioManager.FMOD
         private bool _hasSaveSettingsHandle;
 
         private TaskCompletionSource<bool> _initializationTCS;
-        public Task WhenInitialized => _initializationTCS?.Task ?? Task.CompletedTask;
 
-        #region Initialize
+        #region Initialization
+
+        /// <summary>
+        /// Wait until the save system has finished initializing.
+        /// Must be awaited before any Save/Load operations.
+        /// </summary>
+        public Task WaitForInitialization()
+        {
+            EnsureInitialized();
+            return _initializationTCS.Task;
+
+            void EnsureInitialized()
+            {
+                if (_initializationTCS != null) return;
+                Initialize();
+            }
+        }
 
         private void Initialize()
         {
-            _initializationTCS = new TaskCompletionSource<bool>();
+            if (_initializationTCS != null) return;
+
+            _initializationTCS = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             _ = InitializeAsync();
         }
 
         private async Task InitializeAsync()
         {
-            await TryLoadFMODReferences();
+            try
+            {
+                await TryLoadFMODReferences();
 
-            _fMODReferences.Initialize();
-            InitializeAudioBuses();
+                _fMODReferences.Initialize();
+                InitializeAudioBuses();
 
-            _initializationTCS.TrySetResult(true);
+                _initializationTCS.TrySetResult(true);
+            }
+            catch (Exception e)
+            {
+                DebugLog.Error($"Initialization failed!!!\n{e}");
+                _initializationTCS.TrySetException(e);
+            }
         }
 
         private void InitializeAudioBuses()
