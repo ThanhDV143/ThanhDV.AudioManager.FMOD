@@ -7,13 +7,14 @@ namespace ThanhDV.AudioManager.FMOD
         [MenuItem(Common.MENU_ITEM + "Initialize", false, 0)]
         public static void Initialize()
         {
-            string packageVersion = PackageImporter.GetPackageVersion();
-            string editorPrefsKey = $"{Common.EDITOR_PREF_KEY_PREFIX}{packageVersion}";
-
-            if (!EditorPrefs.HasKey(editorPrefsKey)) EditorPrefs.SetBool(editorPrefsKey, false);
+            if (PackageImporter.IsInitializedCorrectly())
+            {
+                SessionState.SetBool(Common.SESSION_KEY_CHECKED, true);
+                return;
+            }
 
             PackageImporter.MakeAddressable();
-            EditorPrefs.SetBool(editorPrefsKey, true);
+            SessionState.SetBool(Common.SESSION_KEY_CHECKED, PackageImporter.IsInitializedCorrectly());
         }
     }
 }

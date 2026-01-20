@@ -10,15 +10,36 @@ namespace ThanhDV.AudioManager.FMOD
     {
         static PackageImporter()
         {
-            string packageVersion = GetPackageVersion();
-            string editorPrefsKey = $"{Common.EDITOR_PREF_KEY_PREFIX}{packageVersion}";
+            if (SessionState.GetBool(Common.SESSION_KEY_CHECKED, false)) return;
 
-            if (!EditorPrefs.HasKey(editorPrefsKey)) EditorPrefs.SetBool(editorPrefsKey, false);
-            if (!EditorPrefs.GetBool(editorPrefsKey, false))
+            if (IsInitializedCorrectly())
             {
-                MakeAddressable();
-                EditorPrefs.SetBool(editorPrefsKey, true);
+                SessionState.SetBool(Common.SESSION_KEY_CHECKED, true);
+                return;
             }
+
+            MakeAddressable();
+            SessionState.SetBool(Common.SESSION_KEY_CHECKED, IsInitializedCorrectly());
+        }
+
+        public static bool IsInitializedCorrectly()
+        {
+            string path = FindSOPath();
+            string guid = AssetDatabase.AssetPathToGUID(path);
+            if (string.IsNullOrEmpty(guid)) return false;
+
+            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            if (settings == null) return false;
+
+            AddressableAssetGroup group = settings.FindGroup(Common.ADDRESSABLE_GROUP);
+            if (group == null) return false;
+
+            AddressableAssetEntry entry = settings.FindAssetEntry(guid);
+            if (entry == null) return false;
+
+            if (entry.parentGroup.Name != Common.ADDRESSABLE_GROUP) return false;
+
+            return true;
         }
 
         private static string FindSOPath()

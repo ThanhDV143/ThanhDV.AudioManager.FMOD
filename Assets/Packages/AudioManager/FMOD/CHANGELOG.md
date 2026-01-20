@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [2.0.1] - 2026-01-20
+### Updated
+- Update PackageImporter
+
 ## [2.0.0] - 2026-01-19
 ### Updated
 - Improved the `WaitForInitializeDone()` flow to ensure AudioManager is fully initialized before any `Play`/`Pause`/`Stop` operations.
