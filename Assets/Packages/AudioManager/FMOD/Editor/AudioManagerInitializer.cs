@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEditor;
 
 namespace ThanhDV.AudioManager.FMOD
@@ -18,3 +19,4 @@ namespace ThanhDV.AudioManager.FMOD
         }
     }
 }
+#endif

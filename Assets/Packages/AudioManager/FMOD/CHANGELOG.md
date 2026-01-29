@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [2.0.3] - 2026-01-20
+### Fixed
+- Fixed UnityEditor in build
+
 ## [2.0.2] - 2026-01-20
 ### Updated
 - `PackageImporter`
