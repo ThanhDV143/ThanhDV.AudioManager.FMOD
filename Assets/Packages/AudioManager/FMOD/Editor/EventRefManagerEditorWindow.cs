@@ -20,7 +20,7 @@ namespace ThanhDV.AudioManager.FMOD
         private FMODReferences _fMODReferences;
         private bool _isLoadingFMODReferences = false;
 
-        [MenuItem(Common.MENU_ITEM + "EventReference Manager", false, 2)]
+        [MenuItem(Common.MENU_ITEM + "EventReference Manager", false, 3)]
         public static void ShowWindow()
         {
             EventRefManagerEditorWindow window = GetWindow<EventRefManagerEditorWindow>();

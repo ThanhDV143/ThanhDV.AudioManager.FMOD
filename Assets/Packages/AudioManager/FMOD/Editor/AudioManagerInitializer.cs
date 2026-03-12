@@ -3,7 +3,7 @@ using UnityEditor;
 
 namespace ThanhDV.AudioManager.FMOD
 {
-    public class AudioManagerInitializer : EditorWindow
+    public class AudioManagerInitializer
     {
         [MenuItem(Common.MENU_ITEM + "Initialize", false, 0)]
         public static void Initialize()

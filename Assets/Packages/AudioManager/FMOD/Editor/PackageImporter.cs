@@ -20,6 +20,7 @@ namespace ThanhDV.AudioManager.FMOD
             }
 
             MakeAddressable();
+            PlatformChooser.Refresh();
             SessionState.SetBool(Common.SESSION_KEY_CHECKED, IsInitializedCorrectly());
         }
 

@@ -1,7 +1,9 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
+using FMOD;
 using UnityEditor;
 using UnityEngine;
+using FMODStudio = global::FMOD.Studio;
 
 namespace ThanhDV.AudioManager.FMOD
 {
@@ -20,7 +22,7 @@ namespace ThanhDV.AudioManager.FMOD
         private FMODReferences _fMODReferences;
         private bool _isLoadingFMODReferences = false;
 
-        [MenuItem(Common.MENU_ITEM + "Bus Manager", false, 1)]
+        [MenuItem(Common.MENU_ITEM + "Bus Manager", false, 2)]
         public static void ShowWindow()
         {
             BusManagerEditorWindow window = GetWindow<BusManagerEditorWindow>();
@@ -65,6 +67,14 @@ namespace ThanhDV.AudioManager.FMOD
                 LoadBuses();
             }
             EditorGUI.EndDisabledGroup();
+
+            Color originalBackgroundColor = GUI.backgroundColor;
+            GUI.backgroundColor = Color.red;
+            if (GUILayout.Button(new GUIContent("Load All Buses", "Load all buses from the FMOD project. \nNote: this will delete all currently saved buses.")))
+            {
+                DebugLog.Info("GetAllBus()");
+            }
+            GUI.backgroundColor = originalBackgroundColor;
 
             EditorHelper.DrawHorizontalLine();
 
@@ -280,6 +290,76 @@ namespace ThanhDV.AudioManager.FMOD
         private void GenerateWrapper()
         {
             WrapperGenerator.GenerateFMODBus(_fMODReferences.GetBuses());
+        }
+
+        private void GetAllBus()
+        {
+            // List<string> busPaths = new();
+            // FMODStudio.System system = CreateEditorSystem();
+
+            // if (!system.isValid())
+            // {
+            //     DebugLog.Error("Failed to initialize the temporary FMOD system.");
+            //     return;
+            // }
+
+            // try
+            // {
+            //     string bankPath = Settings.Instance.SourceBankPath;
+            //     string stringsBankPath = System.IO.Path.Combine(bankPath, "Master.strings.bank");
+            //     // string[] stringsBankPath = Settings.Instance.PlayInEditorPlatform;
+            //     // foreach (var bp in Settings.Instance.TargetSubFolder)
+            //     // {
+            //     DebugLog.Info(Settings.Instance.DefaultPlatform.);
+
+            //     // }
+
+            //     // RESULT result = system.loadBankFile(stringsBankPath, FMODStudio.LOAD_BANK_FLAGS.NORMAL, out FMODStudio.Bank stringsBank);
+
+            //     // if (result == RESULT.OK)
+            //     // {
+            //     //     stringsBank.getBusCount(out int busCount);
+
+            //     //     if (busCount > 0)
+            //     //     {
+            //     //         FMODStudio.Bus[] buses = new FMODStudio.Bus[busCount];
+            //     //         stringsBank.getBusList(out buses);
+
+            //     //         foreach (FMODStudio.Bus bus in buses)
+            //     //         {
+            //     //             bus.getPath(out string path);
+            //     //             if (!string.IsNullOrEmpty(path) && !string.IsNullOrWhiteSpace(path))
+            //     //             {
+            //     //                 busPaths.Add(path);
+            //     //             }
+            //     //         }
+            //     //     }
+
+            //     //     stringsBank.unload();
+            //     // }
+            //     // else
+            //     // {
+            //     //     DebugLog.Warning($"Bank not found or failed to load at {stringsBankPath}. Result: {result}");
+            //     // }
+            // }
+            // finally
+            // {
+            //     system.release();
+            //     _hasDataUnsaved = false;
+            // }
+        }
+
+        private static FMODStudio.System CreateEditorSystem()
+        {
+            RESULT result = FMODStudio.System.create(out FMODStudio.System system);
+            ;
+            if (result != RESULT.OK) return new FMODStudio.System(System.IntPtr.Zero);
+
+            FMODStudio.INITFLAGS flags = FMODStudio.INITFLAGS.ALLOW_MISSING_PLUGINS | FMODStudio.INITFLAGS.SYNCHRONOUS_UPDATE;
+
+            system.initialize(1, flags, INITFLAGS.MIX_FROM_UPDATE, System.IntPtr.Zero);
+
+            return system;
         }
     }
 }
