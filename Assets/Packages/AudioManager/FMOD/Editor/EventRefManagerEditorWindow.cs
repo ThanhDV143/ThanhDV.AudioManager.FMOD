@@ -1,7 +1,10 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
+using FMOD;
+using FMODUnity;
 using UnityEditor;
 using UnityEngine;
+using FMODStudio = global::FMOD.Studio;
 
 namespace ThanhDV.AudioManager.FMOD
 {
@@ -66,6 +69,14 @@ namespace ThanhDV.AudioManager.FMOD
                 LoadEventReferences();
             }
             EditorGUI.EndDisabledGroup();
+
+            Color originalBackgroundColor = GUI.backgroundColor;
+            GUI.backgroundColor = Color.red;
+            if (GUILayout.Button(new GUIContent("Load All EventReferences", "Load all EventReference from the FMOD project. \nNote: this will delete all currently saved EventReferences.")))
+            {
+                GetAllEventReferences();
+            }
+            GUI.backgroundColor = originalBackgroundColor;
 
             EditorHelper.DrawHorizontalLine();
 
@@ -280,6 +291,196 @@ namespace ThanhDV.AudioManager.FMOD
         private void GenerateWrapper()
         {
             WrapperGenerator.GenerateFMODEventReference(_fMODReferences.GetEventReferences());
+        }
+
+        private void GetAllEventReferences()
+        {
+            List<EventReferenceEntry> loadedEventReferences = new();
+            FMODStudio.System system = CreateEditorSystem();
+
+            if (!system.isValid())
+            {
+                DebugLog.Error("Failed to initialize the temporary FMOD system.");
+                return;
+            }
+
+            try
+            {
+                string bankPath = Settings.Instance.SourceBankPath;
+                string curPlatform = Settings.Instance.DefaultPlatform.BuildDirectory;
+                string platformBankDirectory = System.IO.Path.Combine(bankPath, curPlatform);
+
+                if (!System.IO.Directory.Exists(platformBankDirectory))
+                {
+                    DebugLog.Warning($"Bank directory not found at {platformBankDirectory}.");
+                    return;
+                }
+
+                string[] allBankFiles = System.IO.Directory.GetFiles(platformBankDirectory, "*.bank", System.IO.SearchOption.TopDirectoryOnly);
+                List<string> stringsBankPaths = new();
+                List<string> contentBankPaths = new();
+
+                for (int i = 0; i < allBankFiles.Length; i++)
+                {
+                    string bankFilePath = allBankFiles[i];
+                    if (bankFilePath.EndsWith(".strings.bank", System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        stringsBankPaths.Add(bankFilePath);
+                    }
+                    else
+                    {
+                        contentBankPaths.Add(bankFilePath);
+                    }
+                }
+
+                if (contentBankPaths.Count == 0)
+                {
+                    DebugLog.Warning($"No content banks were found in {platformBankDirectory}.");
+                    return;
+                }
+
+                List<FMODStudio.Bank> loadedStringsBanks = new();
+                try
+                {
+                    for (int i = 0; i < stringsBankPaths.Count; i++)
+                    {
+                        string stringsBankPath = stringsBankPaths[i];
+                        RESULT result = system.loadBankFile(stringsBankPath, FMODStudio.LOAD_BANK_FLAGS.NORMAL, out FMODStudio.Bank stringsBank);
+                        if (result != RESULT.OK)
+                        {
+                            DebugLog.Warning($"Strings bank not found or failed to load at {stringsBankPath}. Result: {result}");
+                            continue;
+                        }
+
+                        loadedStringsBanks.Add(stringsBank);
+                    }
+
+                    HashSet<string> seenPaths = new(System.StringComparer.OrdinalIgnoreCase);
+                    HashSet<string> usedKeys = new(System.StringComparer.Ordinal);
+
+                    for (int i = 0; i < contentBankPaths.Count; i++)
+                    {
+                        string contentBankPath = contentBankPaths[i];
+                        RESULT result = system.loadBankFile(contentBankPath, FMODStudio.LOAD_BANK_FLAGS.NORMAL, out FMODStudio.Bank bank);
+                        if (result != RESULT.OK)
+                        {
+                            DebugLog.Warning($"Bank not found or failed to load at {contentBankPath}. Result: {result}");
+                            continue;
+                        }
+
+                        try
+                        {
+                            result = bank.getEventList(out FMODStudio.EventDescription[] eventDescriptions);
+                            if (result != RESULT.OK)
+                            {
+                                DebugLog.Warning($"Failed to query event list from {contentBankPath}. Result: {result}");
+                                continue;
+                            }
+
+                            for (int eventIndex = 0; eventIndex < eventDescriptions.Length; eventIndex++)
+                            {
+                                FMODStudio.EventDescription eventDescription = eventDescriptions[eventIndex];
+
+                                result = eventDescription.getPath(out string path);
+                                if (result != RESULT.OK || string.IsNullOrWhiteSpace(path) || !seenPaths.Add(path))
+                                {
+                                    continue;
+                                }
+
+                                result = eventDescription.getID(out global::FMOD.GUID guid);
+                                if (result != RESULT.OK)
+                                {
+                                    DebugLog.Warning($"Failed to query event guid for '{path}'. Result: {result}");
+                                    continue;
+                                }
+
+                                loadedEventReferences.Add(new EventReferenceEntry
+                                {
+                                    Key = CreateUniqueEventKey(path, usedKeys),
+                                    EventReference = new EventReference
+                                    {
+                                        Path = path,
+                                        Guid = guid,
+                                    }
+                                });
+                            }
+                        }
+                        finally
+                        {
+                            bank.unload();
+                        }
+                    }
+                }
+                finally
+                {
+                    for (int i = 0; i < loadedStringsBanks.Count; i++)
+                    {
+                        loadedStringsBanks[i].unload();
+                    }
+                }
+
+                _eventReferences = loadedEventReferences;
+                _so = new SerializedObject(this);
+                _eventReferencesProp = _so.FindProperty(nameof(_eventReferences));
+                _hasDataUnsaved = loadedEventReferences.Count > 0;
+                Repaint();
+
+                if (loadedEventReferences.Count == 0)
+                {
+                    DebugLog.Warning("Load All EventReferences completed, but no valid event references were collected.");
+                }
+            }
+            finally
+            {
+                system.release();
+            }
+        }
+
+        private static string CreateUniqueEventKey(string eventPath, HashSet<string> usedKeys)
+        {
+            string rawKey = eventPath;
+            if (rawKey.StartsWith("event:/", System.StringComparison.OrdinalIgnoreCase))
+            {
+                rawKey = rawKey.Substring("event:/".Length);
+            }
+
+            rawKey = rawKey.Trim('/');
+            if (string.IsNullOrWhiteSpace(rawKey)) rawKey = "Event";
+
+            System.Text.StringBuilder builder = new(rawKey.Length);
+            for (int i = 0; i < rawKey.Length; i++)
+            {
+                char character = rawKey[i];
+                builder.Append(char.IsLetterOrDigit(character) || character == '_' ? character : '_');
+            }
+
+            string key = builder.Length == 0 ? "Event" : builder.ToString();
+            if (!char.IsLetter(key[0]) && key[0] != '_')
+            {
+                key = "_" + key;
+            }
+
+            string uniqueKey = key;
+            int suffix = 2;
+            while (!usedKeys.Add(uniqueKey))
+            {
+                uniqueKey = key + "_" + suffix;
+                suffix++;
+            }
+
+            return uniqueKey;
+        }
+
+        private static FMODStudio.System CreateEditorSystem()
+        {
+            RESULT result = FMODStudio.System.create(out FMODStudio.System system);
+            if (result != RESULT.OK) return new FMODStudio.System(System.IntPtr.Zero);
+
+            FMODStudio.INITFLAGS flags = FMODStudio.INITFLAGS.ALLOW_MISSING_PLUGINS | FMODStudio.INITFLAGS.SYNCHRONOUS_UPDATE;
+
+            system.initialize(1, flags, INITFLAGS.MIX_FROM_UPDATE, System.IntPtr.Zero);
+
+            return system;
         }
     }
 }

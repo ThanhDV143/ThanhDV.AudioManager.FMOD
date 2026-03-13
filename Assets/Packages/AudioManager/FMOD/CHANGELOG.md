@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2026-03-13
+### Added
+- Change FMOD Platform
+- Load All Buses
+- Load All Event References
+
 ## [2.0.3] - 2026-01-20
 ### Fixed
 - Fixed UnityEditor in build

@@ -15,7 +15,7 @@ MonoBehaviour:
   m_GroupName: AudioManager
   m_Data:
     m_SerializedData: []
-  m_GUID: 28fe9160ffd565b4a901fdaf5f4a8328
+  m_GUID: bd9f6caa41b6e4ab1b3a93b34190d60b
   m_SerializeEntries:
   - m_GUID: 364c9c1dcd7834040b9e30b310617777
     m_Address: FMODReferences

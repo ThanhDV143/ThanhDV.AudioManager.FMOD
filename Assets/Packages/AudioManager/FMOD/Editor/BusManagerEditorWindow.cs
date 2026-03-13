@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
 using FMOD;
+using FMODUnity;
 using UnityEditor;
 using UnityEngine;
 using FMODStudio = global::FMOD.Studio;
@@ -72,7 +73,7 @@ namespace ThanhDV.AudioManager.FMOD
             GUI.backgroundColor = Color.red;
             if (GUILayout.Button(new GUIContent("Load All Buses", "Load all buses from the FMOD project. \nNote: this will delete all currently saved buses.")))
             {
-                DebugLog.Info("GetAllBus()");
+                GetAllBus();
             }
             GUI.backgroundColor = originalBackgroundColor;
 
@@ -294,59 +295,151 @@ namespace ThanhDV.AudioManager.FMOD
 
         private void GetAllBus()
         {
-            // List<string> busPaths = new();
-            // FMODStudio.System system = CreateEditorSystem();
+            List<string> busPaths = new();
+            FMODStudio.System system = CreateEditorSystem();
 
-            // if (!system.isValid())
-            // {
-            //     DebugLog.Error("Failed to initialize the temporary FMOD system.");
-            //     return;
-            // }
+            if (!system.isValid())
+            {
+                DebugLog.Error("Failed to initialize the temporary FMOD system.");
+                return;
+            }
 
-            // try
-            // {
-            //     string bankPath = Settings.Instance.SourceBankPath;
-            //     string stringsBankPath = System.IO.Path.Combine(bankPath, "Master.strings.bank");
-            //     // string[] stringsBankPath = Settings.Instance.PlayInEditorPlatform;
-            //     // foreach (var bp in Settings.Instance.TargetSubFolder)
-            //     // {
-            //     DebugLog.Info(Settings.Instance.DefaultPlatform.);
+            try
+            {
+                string bankPath = Settings.Instance.SourceBankPath;
+                string curPlatform = Settings.Instance.DefaultPlatform.BuildDirectory;
+                string masterBankPath = System.IO.Path.Combine(bankPath, curPlatform, "Master.bank");
+                string stringsBankPath = System.IO.Path.Combine(bankPath, curPlatform, "Master.strings.bank");
 
-            //     // }
+                RESULT result = system.loadBankFile(stringsBankPath, FMODStudio.LOAD_BANK_FLAGS.NORMAL, out FMODStudio.Bank stringsBank);
 
-            //     // RESULT result = system.loadBankFile(stringsBankPath, FMODStudio.LOAD_BANK_FLAGS.NORMAL, out FMODStudio.Bank stringsBank);
+                if (result != RESULT.OK)
+                {
+                    DebugLog.Warning($"Strings bank not found or failed to load at {stringsBankPath}. Result: {result}");
+                    return;
+                }
 
-            //     // if (result == RESULT.OK)
-            //     // {
-            //     //     stringsBank.getBusCount(out int busCount);
+                try
+                {
+                    result = system.loadBankFile(masterBankPath, FMODStudio.LOAD_BANK_FLAGS.NORMAL, out FMODStudio.Bank masterBank);
+                    if (result != RESULT.OK)
+                    {
+                        DebugLog.Warning($"Master bank not found or failed to load at {masterBankPath}. Result: {result}");
+                        return;
+                    }
 
-            //     //     if (busCount > 0)
-            //     //     {
-            //     //         FMODStudio.Bus[] buses = new FMODStudio.Bus[busCount];
-            //     //         stringsBank.getBusList(out buses);
+                    try
+                    {
+                        result = masterBank.getBusCount(out int busCount);
+                        if (result != RESULT.OK)
+                        {
+                            DebugLog.Warning($"Failed to query bus count from {masterBankPath}. Result: {result}");
+                            return;
+                        }
 
-            //     //         foreach (FMODStudio.Bus bus in buses)
-            //     //         {
-            //     //             bus.getPath(out string path);
-            //     //             if (!string.IsNullOrEmpty(path) && !string.IsNullOrWhiteSpace(path))
-            //     //             {
-            //     //                 busPaths.Add(path);
-            //     //             }
-            //     //         }
-            //     //     }
+                        if (busCount <= 0)
+                        {
+                            DebugLog.Warning($"No buses were found in {masterBankPath}. If you only loaded Master.strings.bank then this is expected, because bus definitions live in Master.bank.");
+                            return;
+                        }
 
-            //     //     stringsBank.unload();
-            //     // }
-            //     // else
-            //     // {
-            //     //     DebugLog.Warning($"Bank not found or failed to load at {stringsBankPath}. Result: {result}");
-            //     // }
-            // }
-            // finally
-            // {
-            //     system.release();
-            //     _hasDataUnsaved = false;
-            // }
+                        result = masterBank.getBusList(out FMODStudio.Bus[] buses);
+                        if (result != RESULT.OK)
+                        {
+                            DebugLog.Warning($"Failed to query bus list from {masterBankPath}. Result: {result}");
+                            return;
+                        }
+
+                        foreach (FMODStudio.Bus bus in buses)
+                        {
+                            result = bus.getPath(out string path);
+                            if (result != RESULT.OK) continue;
+                            if (!string.IsNullOrWhiteSpace(path))
+                            {
+                                busPaths.Add(path);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        masterBank.unload();
+                    }
+                }
+                finally
+                {
+                    stringsBank.unload();
+                }
+
+                _buses = BuildBusEntries(busPaths);
+                _so = new SerializedObject(this);
+                _busesProp = _so.FindProperty(nameof(_buses));
+                _hasDataUnsaved = busPaths.Count > 0;
+                Repaint();
+
+                if (busPaths.Count == 0)
+                {
+                    DebugLog.Warning("Load All Buses completed, but no valid bus paths were collected.");
+                }
+            }
+            finally
+            {
+                system.release();
+            }
+        }
+
+        private static List<BusEntry> BuildBusEntries(List<string> busPaths)
+        {
+            List<BusEntry> busEntries = new();
+            HashSet<string> seenPaths = new(System.StringComparer.Ordinal);
+            HashSet<string> usedKeys = new(System.StringComparer.Ordinal);
+
+            foreach (string busPath in busPaths)
+            {
+                if (string.IsNullOrWhiteSpace(busPath) || !seenPaths.Add(busPath)) continue;
+
+                busEntries.Add(new BusEntry
+                {
+                    Key = CreateUniqueBusKey(busPath, usedKeys),
+                    BusPath = busPath,
+                });
+            }
+
+            return busEntries;
+        }
+
+        private static string CreateUniqueBusKey(string busPath, HashSet<string> usedKeys)
+        {
+            string rawKey = busPath;
+            if (rawKey.StartsWith("bus:/", System.StringComparison.OrdinalIgnoreCase))
+            {
+                rawKey = rawKey.Substring("bus:/".Length);
+            }
+
+            rawKey = rawKey.Trim('/');
+            if (string.IsNullOrWhiteSpace(rawKey)) rawKey = "Master";
+
+            System.Text.StringBuilder builder = new(rawKey.Length);
+            for (int i = 0; i < rawKey.Length; i++)
+            {
+                char character = rawKey[i];
+                builder.Append(char.IsLetterOrDigit(character) || character == '_' ? character : '_');
+            }
+
+            string key = builder.Length == 0 ? "Master" : builder.ToString();
+            if (!char.IsLetter(key[0]) && key[0] != '_')
+            {
+                key = "_" + key;
+            }
+
+            string uniqueKey = key;
+            int suffix = 2;
+            while (!usedKeys.Add(uniqueKey))
+            {
+                uniqueKey = key + "_" + suffix;
+                suffix++;
+            }
+
+            return uniqueKey;
         }
 
         private static FMODStudio.System CreateEditorSystem()
