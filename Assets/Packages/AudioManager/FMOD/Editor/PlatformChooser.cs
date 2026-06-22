@@ -34,6 +34,7 @@ namespace ThanhDV.AudioManager.FMOD
 
             var sb = new StringBuilder();
 
+            sb.AppendLine($"#if UNITY_EDITOR");
             sb.AppendLine($"using UnityEditor;");
             sb.AppendLine($"");
             sb.AppendLine($"namespace ThanhDV.AudioManager.FMOD");
@@ -55,6 +56,7 @@ namespace ThanhDV.AudioManager.FMOD
             sb.AppendLine("        }");
             sb.AppendLine("    }");
             sb.AppendLine("}");
+            sb.AppendLine($"#endif");
 
             File.WriteAllText(scriptPath, sb.ToString());
 
