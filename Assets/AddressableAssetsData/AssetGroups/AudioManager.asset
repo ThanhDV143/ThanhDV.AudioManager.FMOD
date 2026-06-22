@@ -15,13 +15,8 @@ MonoBehaviour:
   m_GroupName: AudioManager
   m_Data:
     m_SerializedData: []
-  m_GUID: bd9f6caa41b6e4ab1b3a93b34190d60b
-  m_SerializeEntries:
-  - m_GUID: 364c9c1dcd7834040b9e30b310617777
-    m_Address: FMODReferences
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
+  m_GUID: 48aa6780ddf985b4da345ea6dfac9768
+  m_SerializeEntries: []
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: c2e06647959c2bb4ea27700926fa4536, type: 2}
   m_SchemaSet:
